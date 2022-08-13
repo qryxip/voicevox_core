@@ -91,6 +91,12 @@ impl SupportedDevices {
             dml: dml_support,
         })
     }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_value(self)
+            .expect("should not fail")
+            .to_string()
+    }
 }
 
 #[allow(unsafe_code)]
