@@ -16,7 +16,7 @@ mod test_util;
 #[cfg(test)]
 use test_util::*;
 
-pub use engine::AudioQueryModel;
+pub use engine::{AccentPhraseModel, AudioQueryModel, MoraModel};
 pub use error::*;
 pub use result::*;
 
