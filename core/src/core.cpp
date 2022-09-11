@@ -11,7 +11,6 @@
 #include <string>
 #include <unordered_set>
 #include <iostream>
-
 #include "nlohmann/json.hpp"
 
 #ifndef SHAREVOX_CORE_EXPORTS
@@ -29,6 +28,13 @@
 #define JSON_ERR "JSON parser raise exception: "
 #define GPU_NOT_SUPPORTED_ERR "This library is CPU version. GPU is not supported."
 #define UNKNOWN_STYLE "Unknown style ID: "
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+#include <Windows.h>
+#define WPATH(path) (utf8_to_wide(path).c_str())
+#else
+#define WPATH(path) (path)
+#endif
 
 // constexpr float PHONEME_LENGTH_MINIMAL = 0.01f;
 constexpr int64_t hidden_size = 192;
@@ -54,6 +60,20 @@ struct Models {
   nlohmann::json model_config;
 };
 
+// ref: https://nekko1119.hatenablog.com/entry/2017/01/02/054629
+#if defined(_WIN32) && !defined(__CYGWIN__)
+std::wstring utf8_to_wide(std::string const& src) {
+  auto const dest_size = ::MultiByteToWideChar(CP_UTF8, 0U, src.data(), -1, nullptr, 0U);
+  std::vector<wchar_t> dest(dest_size, L'\0');
+  if (::MultiByteToWideChar(CP_UTF8, 0U, src.data(), -1, dest.data(), dest.size()) == 0) {
+    throw std::system_error{static_cast<int>(::GetLastError()), std::system_category()};
+  }
+  dest.resize(std::char_traits<wchar_t>::length(dest.data()));
+  dest.shrink_to_fit();
+  return std::wstring(dest.begin(), dest.end());
+}
+#endif
+
 // ref: https://qiita.com/aokomoriuta/items/949ef50bd21b15d10b76
 constexpr std::uint8_t gaussian_model_data[] = {
     #include "gaussian_model.txt"
@@ -67,10 +87,10 @@ bool open_model_files(const std::string &root_dir_path, const std::string librar
   const std::string embedder_model_path = root_dir_path + library_uuid + "/embedder_model.onnx";
   const std::string decoder_model_path = root_dir_path + library_uuid + "/decoder_model.onnx";
   const std::string model_config_path = root_dir_path + library_uuid + "/model_config.json";
-  std::ifstream variance_model_file(variance_model_path, std::ios::binary),
-      embedder_model_file(embedder_model_path, std::ios::binary),
-      decoder_model_file(decoder_model_path, std::ios::binary),
-      model_config_file(model_config_path);
+  std::ifstream variance_model_file(WPATH(variance_model_path), std::ios::binary),
+      embedder_model_file(WPATH(embedder_model_path), std::ios::binary),
+      decoder_model_file(WPATH(decoder_model_path), std::ios::binary),
+      model_config_file(WPATH(model_config_path));
   if (!variance_model_file.is_open() || !embedder_model_file.is_open() || !decoder_model_file.is_open() || !model_config_file.is_open()) {
     error_message = FAILED_TO_OPEN_MODEL_ERR;
     return false;
@@ -95,7 +115,7 @@ bool open_model_files(const std::string &root_dir_path, const std::string librar
  * }]
  */
 bool open_metas(const std::string root_dir_path, const std::string library_uuid, nlohmann::json &metas) {
-  std::ifstream metas_file(root_dir_path + library_uuid + "/metas.json");
+  std::ifstream metas_file(WPATH(root_dir_path + library_uuid + "/metas.json"));
   if (!metas_file.is_open()) {
     error_message = FAILED_TO_OPEN_METAS_ERR;
     return false;
@@ -106,7 +126,7 @@ bool open_metas(const std::string root_dir_path, const std::string library_uuid,
 
 bool open_libraries(const std::string root_dir_path, nlohmann::json &libraries) {
   std::string libraries_path = root_dir_path + "libraries.json";
-  std::ifstream libraries_file(libraries_path);
+  std::ifstream libraries_file(WPATH(libraries_path));
   if (!libraries_file.is_open()) {
     error_message = FAILED_TO_OPEN_LIBRARIES_ERR;
     return false;
