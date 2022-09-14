@@ -228,12 +228,26 @@ struct Status {
                                                                 }));
 
       for (auto &meta : metas) {
+        int speaker_index = -1;
+        int count = 0;
+        for (auto &all_meta : all_metas) {
+          if (meta["speaker_uuid"] == all_meta["speaker_uuid"]) {
+            speaker_index = count;
+          }
+          count++;
+        }
         for (auto &style : meta["styles"]) {
           int64_t metas_style_id = start_speaker_id + style["id"].get<int64_t>();
           style["id"] = metas_style_id;
           speaker_id_map.insert(std::make_pair(metas_style_id, library_uuid));
+          if (speaker_index != -1) {
+            all_metas[speaker_index]["styles"].push_back(style);
+          }
         }
-        all_metas.push_back(meta);
+
+        if (speaker_index == -1) {
+          all_metas.push_back(meta);
+        }
       }
     }
     metas_str = all_metas.dump();

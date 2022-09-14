@@ -42,12 +42,10 @@ class TestCore(unittest.TestCase):
         with open(os.path.join(root_dir, "gaussian_test", "metas.json"), encoding="utf-8") as f:
             gaussian_metas_json = json.load(f)
             gaussian_metas_json[0]["styles"][0]["id"] = 1
-            metas_json += gaussian_metas_json
-        metas_json.sort(key=lambda x: x["styles"][0]["id"])
+            metas_json[0]["styles"].append(gaussian_metas_json[0]["styles"][0])
         metas = json.dumps(metas_json, sort_keys=True)
         core.initialize(root_dir, False)
         core_metas_json = json.loads(core.metas())
-        core_metas_json.sort(key=lambda x: x["styles"][0]["id"])
         core_metas = json.dumps(core_metas_json, sort_keys=True)
         core.finalize()
         self.assertEqual(metas, core_metas)
