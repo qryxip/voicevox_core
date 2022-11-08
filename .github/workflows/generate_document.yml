@@ -2,7 +2,7 @@ name: generate API documents
 on:
   push:
     branches:
-      - main
+      - sphinx-qryxip
   pull_request:
 jobs:
   generate_api_document:
@@ -55,7 +55,7 @@ jobs:
     environment:
       name: APIドキュメント
       url: ${{ steps.api.outputs.page_url }}/apis
-    if: ${{ github.ref_name == 'main' }}
+    if: ${{ github.ref_name == 'sphinx-qryxip' }}
     steps:
       - name: Deploy to GitHub pages
         id: api
