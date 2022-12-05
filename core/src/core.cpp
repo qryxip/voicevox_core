@@ -5,6 +5,7 @@
 #endif
 
 #include <array>
+#include <cmath>
 #include <exception>
 #include <fstream>
 #include <memory>
@@ -455,7 +456,8 @@ bool variance_forward(int64_t length, int64_t *phonemes, int64_t *accents, int64
 std::vector<float> length_regulator(int64_t length, std::vector<float> &embedded_vector, float *durations) {
   std::vector<float> length_regulated_vector;
   for (int64_t i = 0; i < length; i++) {
-    auto regulation_size = (int64_t)(durations[i] * 187.5);  // 48000 / 256 = 187.5
+    // numpy/pythonのroundと挙動を合わせるため、nearbyintを用いている
+    auto regulation_size = (int64_t)std::nearbyint(durations[i] * 93.75f) * 2; // 24000 / 256 = 93.75
     size_t start = length_regulated_vector.size();
     length_regulated_vector.resize(start + (regulation_size * hidden_size));
     for (int64_t j = 0; j < regulation_size * hidden_size; j += hidden_size) {
@@ -471,7 +473,7 @@ std::vector<float> gaussian_upsampling(int64_t length, std::vector<float> &embed
   int64_t new_size = 0;
   std::vector<int64_t> int_durations(length);
   for (int64_t i = 0; i < length; i++) {
-    auto regulation_size = (int64_t)(durations[i] * 187.5);  // 48000 / 256 = 187.5
+    auto regulation_size = (int64_t)std::nearbyint(durations[i] * 93.75f) * 2; // 24000 / 256 = 93.75
     int_durations[i] = regulation_size;
     new_size += regulation_size;
   }
