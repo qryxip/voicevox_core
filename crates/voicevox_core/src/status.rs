@@ -162,11 +162,11 @@ impl Status {
         }
     }
 
-    pub fn is_model_loaded(&self, model_index: usize) -> bool {
-        self.models.predict_intonation.contains_key(&model_index)
-            && self.models.predict_duration.contains_key(&model_index)
-            && self.models.decode.contains_key(&model_index)
-    }
+    // pub fn is_model_loaded(&self, model_index: usize) -> bool {
+    //     self.models.predict_intonation.contains_key(&model_index)
+    //         && self.models.predict_duration.contains_key(&model_index)
+    //         && self.models.decode.contains_key(&model_index)
+    // }
 
     fn new_session<B: AsRef<[u8]>>(
         &self,
@@ -251,79 +251,79 @@ impl Status {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[rstest]
-    #[case(true, 0)]
-    #[case(true, 1)]
-    #[case(true, 8)]
-    #[case(false, 2)]
-    #[case(false, 4)]
-    #[case(false, 8)]
-    #[case(false, 0)]
-    fn status_new_works(#[case] use_gpu: bool, #[case] cpu_num_threads: u16) {
-        let status = Status::new(use_gpu, cpu_num_threads);
-        assert_eq!(false, status.light_session_options.use_gpu);
-        assert_eq!(use_gpu, status.heavy_session_options.use_gpu);
-        assert_eq!(
-            cpu_num_threads,
-            status.light_session_options.cpu_num_threads
-        );
-        assert_eq!(
-            cpu_num_threads,
-            status.heavy_session_options.cpu_num_threads
-        );
-        assert!(status.models.predict_duration.is_empty());
-        assert!(status.models.predict_intonation.is_empty());
-        assert!(status.models.decode.is_empty());
-        assert!(status.supported_styles.is_empty());
-    }
-
-    #[rstest]
-    fn status_load_metas_works() {
-        let mut status = Status::new(true, 0);
-        let result = status.load_metas();
-        assert_eq!(Ok(()), result);
-        let mut expected = BTreeSet::new();
-        expected.insert(0);
-        expected.insert(1);
-        assert_eq!(expected, status.supported_styles);
-    }
-
-    #[rstest]
-    fn supported_devices_get_supported_devices_works() {
-        let result = SupportedDevices::get_supported_devices();
-        // 環境によって結果が変わるので、関数呼び出しが成功するかどうかの確認のみ行う
-        assert!(result.is_ok(), "{:?}", result);
-    }
-
-    #[rstest]
-    fn status_load_model_works() {
-        let mut status = Status::new(false, 0);
-        let result = status.load_model(0);
-        assert_eq!(Ok(()), result);
-        assert_eq!(1, status.models.predict_duration.len());
-        assert_eq!(1, status.models.predict_intonation.len());
-        assert_eq!(1, status.models.decode.len());
-    }
-
-    #[rstest]
-    fn status_is_model_loaded_works() {
-        let mut status = Status::new(false, 0);
-        let model_index = 0;
-        assert!(
-            !status.is_model_loaded(model_index),
-            "model should  not be loaded"
-        );
-        let result = status.load_model(model_index);
-        assert_eq!(Ok(()), result);
-        assert!(
-            status.is_model_loaded(model_index),
-            "model should be loaded"
-        );
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//
+//     use super::*;
+//     use pretty_assertions::assert_eq;
+//
+//     #[rstest]
+//     #[case(true, 0)]
+//     #[case(true, 1)]
+//     #[case(true, 8)]
+//     #[case(false, 2)]
+//     #[case(false, 4)]
+//     #[case(false, 8)]
+//     #[case(false, 0)]
+//     fn status_new_works(#[case] use_gpu: bool, #[case] cpu_num_threads: u16) {
+//         let status = Status::new(use_gpu, cpu_num_threads);
+//         assert_eq!(false, status.light_session_options.use_gpu);
+//         assert_eq!(use_gpu, status.heavy_session_options.use_gpu);
+//         assert_eq!(
+//             cpu_num_threads,
+//             status.light_session_options.cpu_num_threads
+//         );
+//         assert_eq!(
+//             cpu_num_threads,
+//             status.heavy_session_options.cpu_num_threads
+//         );
+//         assert!(status.models.predict_duration.is_empty());
+//         assert!(status.models.predict_intonation.is_empty());
+//         assert!(status.models.decode.is_empty());
+//         assert!(status.supported_styles.is_empty());
+//     }
+//
+//     #[rstest]
+//     fn status_load_metas_works() {
+//         let mut status = Status::new(true, 0);
+//         let result = status.load_metas();
+//         assert_eq!(Ok(()), result);
+//         let mut expected = BTreeSet::new();
+//         expected.insert(0);
+//         expected.insert(1);
+//         assert_eq!(expected, status.supported_styles);
+//     }
+//
+//     #[rstest]
+//     fn supported_devices_get_supported_devices_works() {
+//         let result = SupportedDevices::get_supported_devices();
+//         // 環境によって結果が変わるので、関数呼び出しが成功するかどうかの確認のみ行う
+//         assert!(result.is_ok(), "{:?}", result);
+//     }
+//
+//     #[rstest]
+//     fn status_load_model_works() {
+//         let mut status = Status::new(false, 0);
+//         let result = status.load_model(0);
+//         assert_eq!(Ok(()), result);
+//         assert_eq!(1, status.models.predict_duration.len());
+//         assert_eq!(1, status.models.predict_intonation.len());
+//         assert_eq!(1, status.models.decode.len());
+//     }
+//
+//     #[rstest]
+//     fn status_is_model_loaded_works() {
+//         let mut status = Status::new(false, 0);
+//         let model_index = 0;
+//         assert!(
+//             !status.is_model_loaded(model_index),
+//             "model should  not be loaded"
+//         );
+//         let result = status.load_model(model_index);
+//         assert_eq!(Ok(()), result);
+//         assert!(
+//             status.is_model_loaded(model_index),
+//             "model should be loaded"
+//         );
+//     }
+// }

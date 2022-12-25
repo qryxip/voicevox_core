@@ -197,48 +197,48 @@ pub unsafe extern "C" fn voicevox_predict_duration_data_free(predict_duration_da
 /// @param end_accent_phrase_vector 必ずlengthの長さだけデータがある状態で渡すこと
 /// @param output_predict_intonation_data_length uintptr_t 分のメモリ領域が割り当てられていること
 /// @param output_predict_intonation_data 成功後にメモリ領域が割り当てられるので ::voicevox_predict_intonation_data_free で解放する必要がある
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_predict_intonation(
-    length: usize,
-    vowel_phoneme_vector: *mut i64,
-    consonant_phoneme_vector: *mut i64,
-    start_accent_vector: *mut i64,
-    end_accent_vector: *mut i64,
-    start_accent_phrase_vector: *mut i64,
-    end_accent_phrase_vector: *mut i64,
-    speaker_id: u32,
-    output_predict_intonation_data_length: *mut usize,
-    output_predict_intonation_data: *mut *mut f32,
-) -> VoicevoxResultCode {
-    into_result_code_with_error((|| {
-        let output_vec = lock_internal().predict_intonation(
-            length,
-            std::slice::from_raw_parts(vowel_phoneme_vector, length),
-            std::slice::from_raw_parts(consonant_phoneme_vector, length),
-            std::slice::from_raw_parts(start_accent_vector, length),
-            std::slice::from_raw_parts(end_accent_vector, length),
-            std::slice::from_raw_parts(start_accent_phrase_vector, length),
-            std::slice::from_raw_parts(end_accent_phrase_vector, length),
-            speaker_id,
-        )?;
-        write_predict_intonation_to_ptr(
-            output_predict_intonation_data,
-            output_predict_intonation_data_length,
-            &output_vec,
-        );
-        Ok(())
-    })())
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_predict_intonation(
+//     length: usize,
+//     vowel_phoneme_vector: *mut i64,
+//     consonant_phoneme_vector: *mut i64,
+//     start_accent_vector: *mut i64,
+//     end_accent_vector: *mut i64,
+//     start_accent_phrase_vector: *mut i64,
+//     end_accent_phrase_vector: *mut i64,
+//     speaker_id: u32,
+//     output_predict_intonation_data_length: *mut usize,
+//     output_predict_intonation_data: *mut *mut f32,
+// ) -> VoicevoxResultCode {
+//     into_result_code_with_error((|| {
+//         let output_vec = lock_internal().predict_intonation(
+//             length,
+//             std::slice::from_raw_parts(vowel_phoneme_vector, length),
+//             std::slice::from_raw_parts(consonant_phoneme_vector, length),
+//             std::slice::from_raw_parts(start_accent_vector, length),
+//             std::slice::from_raw_parts(end_accent_vector, length),
+//             std::slice::from_raw_parts(start_accent_phrase_vector, length),
+//             std::slice::from_raw_parts(end_accent_phrase_vector, length),
+//             speaker_id,
+//         )?;
+//         write_predict_intonation_to_ptr(
+//             output_predict_intonation_data,
+//             output_predict_intonation_data_length,
+//             &output_vec,
+//         );
+//         Ok(())
+//     })())
+// }
 
 /// ::voicevox_predict_intonationで出力されたデータを解放する
 /// @param[in] predict_intonation_data 確保されたメモリ領域
 ///
 /// # Safety
 /// @param predict_intonation_data 実行後に割り当てられたメモリ領域が解放される
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_predict_intonation_data_free(predict_intonation_data: *mut f32) {
-    libc::free(predict_intonation_data as *mut c_void);
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_predict_intonation_data_free(predict_intonation_data: *mut f32) {
+//     libc::free(predict_intonation_data as *mut c_void);
+// }
 
 /// decodeを実行する
 /// @param [in] length f0 , output のデータ長及び phoneme のデータ長に関連する
@@ -255,38 +255,38 @@ pub unsafe extern "C" fn voicevox_predict_intonation_data_free(predict_intonatio
 /// @param phoneme_vector 必ず length * phoneme_size の長さだけデータがある状態で渡すこと
 /// @param output_decode_data_length uintptr_t 分のメモリ領域が割り当てられていること
 /// @param output_decode_data 成功後にメモリ領域が割り当てられるので ::voicevox_decode_data_free で解放する必要がある
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_decode(
-    length: usize,
-    phoneme_size: usize,
-    f0: *mut f32,
-    phoneme_vector: *mut f32,
-    speaker_id: u32,
-    output_decode_data_length: *mut usize,
-    output_decode_data: *mut *mut f32,
-) -> VoicevoxResultCode {
-    into_result_code_with_error((|| {
-        let output_vec = lock_internal().decode(
-            length,
-            phoneme_size,
-            std::slice::from_raw_parts(f0, length),
-            std::slice::from_raw_parts(phoneme_vector, phoneme_size * length),
-            speaker_id,
-        )?;
-        write_decode_to_ptr(output_decode_data, output_decode_data_length, &output_vec);
-        Ok(())
-    })())
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_decode(
+//     length: usize,
+//     phoneme_size: usize,
+//     f0: *mut f32,
+//     phoneme_vector: *mut f32,
+//     speaker_id: u32,
+//     output_decode_data_length: *mut usize,
+//     output_decode_data: *mut *mut f32,
+// ) -> VoicevoxResultCode {
+//     into_result_code_with_error((|| {
+//         let output_vec = lock_internal().decode(
+//             length,
+//             phoneme_size,
+//             std::slice::from_raw_parts(f0, length),
+//             std::slice::from_raw_parts(phoneme_vector, phoneme_size * length),
+//             speaker_id,
+//         )?;
+//         write_decode_to_ptr(output_decode_data, output_decode_data_length, &output_vec);
+//         Ok(())
+//     })())
+// }
 
 /// ::voicevox_decodeで出力されたデータを解放する
 /// @param[in] decode_data 確保されたメモリ領域
 ///
 /// # Safety
 /// @param decode_data 実行後に割り当てられたメモリ領域が解放される
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_decode_data_free(decode_data: *mut f32) {
-    libc::free(decode_data as *mut c_void);
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_decode_data_free(decode_data: *mut f32) {
+//     libc::free(decode_data as *mut c_void);
+// }
 
 /// Audio query のオプション
 #[repr(C)]
@@ -312,20 +312,20 @@ pub extern "C" fn voicevox_make_default_audio_query_options() -> VoicevoxAudioQu
 /// # Safety
 /// @param text null終端文字列であること
 /// @param output_audio_query_json 自動でheapメモリが割り当てられるので ::voicevox_audio_query_json_free で解放する必要がある
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_audio_query(
-    text: *const c_char,
-    speaker_id: u32,
-    options: VoicevoxAudioQueryOptions,
-    output_audio_query_json: *mut *mut c_char,
-) -> VoicevoxResultCode {
-    into_result_code_with_error((|| {
-        let text = CStr::from_ptr(text);
-        let audio_query = &create_audio_query(text, speaker_id, Internal::audio_query, options)?;
-        write_json_to_ptr(output_audio_query_json, audio_query);
-        Ok(())
-    })())
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_audio_query(
+//     text: *const c_char,
+//     speaker_id: u32,
+//     options: VoicevoxAudioQueryOptions,
+//     output_audio_query_json: *mut *mut c_char,
+// ) -> VoicevoxResultCode {
+//     into_result_code_with_error((|| {
+//         let text = CStr::from_ptr(text);
+//         let audio_query = &create_audio_query(text, speaker_id, Internal::audio_query, options)?;
+//         write_json_to_ptr(output_audio_query_json, audio_query);
+//         Ok(())
+//     })())
+// }
 
 /// `voicevox_synthesis` のオプション
 #[repr(C)]
@@ -352,25 +352,25 @@ pub extern "C" fn voicevox_make_default_synthesis_options() -> VoicevoxSynthesis
 /// # Safety
 /// @param output_wav_length 出力先の領域が確保された状態でpointerに渡されていること
 /// @param output_wav 自動で output_wav_length 分のデータが割り当てられるので ::voicevox_wav_free で解放する必要がある
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_synthesis(
-    audio_query_json: *const c_char,
-    speaker_id: u32,
-    options: VoicevoxSynthesisOptions,
-    output_wav_length: *mut usize,
-    output_wav: *mut *mut u8,
-) -> VoicevoxResultCode {
-    into_result_code_with_error((|| {
-        let audio_query_json = CStr::from_ptr(audio_query_json)
-            .to_str()
-            .map_err(|_| CApiError::InvalidUtf8Input)?;
-        let audio_query =
-            &serde_json::from_str(audio_query_json).map_err(CApiError::InvalidAudioQuery)?;
-        let wav = &lock_internal().synthesis(audio_query, speaker_id, options.into())?;
-        write_wav_to_ptr(output_wav, output_wav_length, wav);
-        Ok(())
-    })())
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_synthesis(
+//     audio_query_json: *const c_char,
+//     speaker_id: u32,
+//     options: VoicevoxSynthesisOptions,
+//     output_wav_length: *mut usize,
+//     output_wav: *mut *mut u8,
+// ) -> VoicevoxResultCode {
+//     into_result_code_with_error((|| {
+//         let audio_query_json = CStr::from_ptr(audio_query_json)
+//             .to_str()
+//             .map_err(|_| CApiError::InvalidUtf8Input)?;
+//         let audio_query =
+//             &serde_json::from_str(audio_query_json).map_err(CApiError::InvalidAudioQuery)?;
+//         let wav = &lock_internal().synthesis(audio_query, speaker_id, options.into())?;
+//         write_wav_to_ptr(output_wav, output_wav_length, wav);
+//         Ok(())
+//     })())
+// }
 
 /// テキスト音声合成オプション
 #[repr(C)]
@@ -399,21 +399,21 @@ pub extern "C" fn voicevox_make_default_tts_options() -> VoicevoxTtsOptions {
 /// # Safety
 /// @param output_wav_length 出力先の領域が確保された状態でpointerに渡されていること
 /// @param output_wav は自動で output_wav_length 分のデータが割り当てられるので ::voicevox_wav_free で解放する必要がある
-#[no_mangle]
-pub unsafe extern "C" fn voicevox_tts(
-    text: *const c_char,
-    speaker_id: u32,
-    options: VoicevoxTtsOptions,
-    output_wav_length: *mut usize,
-    output_wav: *mut *mut u8,
-) -> VoicevoxResultCode {
-    into_result_code_with_error((|| {
-        let text = ensure_utf8(CStr::from_ptr(text))?;
-        let output = lock_internal().tts(text, speaker_id, options.into())?;
-        write_wav_to_ptr(output_wav, output_wav_length, output.as_slice());
-        Ok(())
-    })())
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn voicevox_tts(
+//     text: *const c_char,
+//     speaker_id: u32,
+//     options: VoicevoxTtsOptions,
+//     output_wav_length: *mut usize,
+//     output_wav: *mut *mut u8,
+// ) -> VoicevoxResultCode {
+//     into_result_code_with_error((|| {
+//         let text = ensure_utf8(CStr::from_ptr(text))?;
+//         let output = lock_internal().tts(text, speaker_id, options.into())?;
+//         write_wav_to_ptr(output_wav, output_wav_length, output.as_slice());
+//         Ok(())
+//     })())
+// }
 
 /// jsonフォーマットされた AudioQuery データのメモリを解放する
 /// @param [in] audio_query_json 解放する json フォーマットされた AudioQuery データ
