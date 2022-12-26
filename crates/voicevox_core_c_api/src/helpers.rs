@@ -48,10 +48,12 @@ pub(crate) enum CApiError {
     RustApi(#[from] voicevox_core::Error),
     #[error("UTF-8として不正な入力です")]
     InvalidUtf8Input,
+    #[allow(dead_code)]
     #[error("無効なAudioQueryです: {0}")]
     InvalidAudioQuery(serde_json::Error),
 }
 
+#[allow(dead_code)]
 pub(crate) fn create_audio_query(
     japanese_or_kana: &CStr,
     speaker_id: u32,
@@ -74,10 +76,12 @@ pub(crate) fn create_audio_query(
     Ok(CString::new(audio_query_model_to_json(&audio_query)).expect("should not contain '\\0'"))
 }
 
+#[allow(dead_code)]
 fn audio_query_model_to_json(audio_query_model: &AudioQueryModel) -> String {
     serde_json::to_string(audio_query_model).expect("should be always valid")
 }
 
+#[allow(dead_code)]
 pub(crate) unsafe fn write_json_to_ptr(output_ptr: *mut *mut c_char, json: &CStr) {
     let n = json.to_bytes_with_nul().len();
     let json_heap = libc::malloc(n);
@@ -85,6 +89,7 @@ pub(crate) unsafe fn write_json_to_ptr(output_ptr: *mut *mut c_char, json: &CStr
     output_ptr.write(json_heap as *mut c_char);
 }
 
+#[allow(dead_code)]
 pub(crate) unsafe fn write_wav_to_ptr(
     output_wav_ptr: *mut *mut u8,
     output_length_ptr: *mut usize,
@@ -112,6 +117,7 @@ pub(crate) unsafe fn write_variance_forward_to_ptr(
     );
 }
 
+#[allow(dead_code)]
 pub(crate) unsafe fn write_predict_intonation_to_ptr(
     output_predict_intonation_ptr: *mut *mut f32,
     output_predict_intonation_length_ptr: *mut usize,
@@ -124,6 +130,7 @@ pub(crate) unsafe fn write_predict_intonation_to_ptr(
     );
 }
 
+#[allow(dead_code)]
 pub(crate) unsafe fn write_decode_to_ptr(
     output_decode_ptr: *mut *mut f32,
     output_decode_length_ptr: *mut usize,

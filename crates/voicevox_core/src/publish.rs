@@ -396,7 +396,7 @@ impl InferenceCore {
             &mut speaker_id_array,
         ];
 
-        Ok(status.variance_session_run(&library_uuid, input_tensors)?)
+        status.variance_session_run(&library_uuid, input_tensors)
     }
 
     // #[allow(clippy::too_many_arguments)]

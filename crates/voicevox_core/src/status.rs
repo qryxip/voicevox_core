@@ -217,12 +217,10 @@ impl Status {
 
             for meta in metas.as_mut_slice() {
                 let mut speaker_index: Option<usize> = None;
-                let mut count = 0;
-                for all_meta in &all_metas {
+                for (count, all_meta) in all_metas.iter().enumerate() {
                     if meta.speaker_uuid == all_meta.speaker_uuid {
                         speaker_index = Some(count);
                     }
-                    count += 1;
                 }
                 for style in meta.styles.as_mut_slice() {
                     let metas_style_id = start_speaker_id as u64 + style.id;
@@ -364,9 +362,7 @@ impl Status {
     }
 
     pub fn get_library_uuid_from_speaker_id(&self, speaker_id: u32) -> Option<String> {
-        self.speaker_id_map
-            .get(&(speaker_id as u64))
-            .map(|uuid| uuid.clone())
+        self.speaker_id_map.get(&(speaker_id as u64)).cloned()
     }
 }
 

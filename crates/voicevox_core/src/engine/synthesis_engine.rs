@@ -7,24 +7,30 @@ use super::open_jtalk::OpenJtalk;
 use super::*;
 use crate::InferenceCore;
 
+#[allow(dead_code)]
 const UNVOICED_MORA_PHONEME_LIST: &[&str] = &["A", "I", "U", "E", "O", "cl", "pau"];
 
+#[allow(dead_code)]
 const MORA_PHONEME_LIST: &[&str] = &[
     "a", "i", "u", "e", "o", "N", "A", "I", "U", "E", "O", "cl", "pau",
 ];
 
+#[allow(dead_code)]
 #[derive(new)]
 pub struct SynthesisEngine {
     inference_core: InferenceCore,
     open_jtalk: OpenJtalk,
 }
 
+#[allow(dead_code)]
 #[allow(unsafe_code)]
 unsafe impl Send for SynthesisEngine {}
 
 impl SynthesisEngine {
+    #[allow(dead_code)]
     pub const DEFAULT_SAMPLING_RATE: u32 = 24000;
 
+    #[allow(dead_code)]
     pub fn inference_core(&self) -> &InferenceCore {
         &self.inference_core
     }
@@ -517,6 +523,7 @@ impl SynthesisEngine {
     // }
 }
 
+#[allow(dead_code)]
 pub fn to_flatten_moras(accent_phrases: &[AccentPhraseModel]) -> Vec<MoraModel> {
     let mut flatten_moras = Vec::new();
 
@@ -533,6 +540,7 @@ pub fn to_flatten_moras(accent_phrases: &[AccentPhraseModel]) -> Vec<MoraModel> 
     flatten_moras
 }
 
+#[allow(dead_code)]
 pub fn to_phoneme_data_list<T: AsRef<str>>(phoneme_str_list: &[T]) -> Vec<OjtPhoneme> {
     OjtPhoneme::convert(
         phoneme_str_list
@@ -544,6 +552,7 @@ pub fn to_phoneme_data_list<T: AsRef<str>>(phoneme_str_list: &[T]) -> Vec<OjtPho
     )
 }
 
+#[allow(dead_code)]
 pub fn split_mora(phoneme_list: &[OjtPhoneme]) -> (Vec<OjtPhoneme>, Vec<OjtPhoneme>, Vec<i64>) {
     let mut vowel_indexes = Vec::new();
     for (i, phoneme) in phoneme_list.iter().enumerate() {
@@ -574,6 +583,7 @@ pub fn split_mora(phoneme_list: &[OjtPhoneme]) -> (Vec<OjtPhoneme>, Vec<OjtPhone
     (consonant_phoneme_list, vowel_phoneme_list, vowel_indexes)
 }
 
+#[allow(dead_code)]
 fn mora_to_text(mora: impl AsRef<str>) -> String {
     let last_char = mora.as_ref().chars().last().unwrap();
     let mora = if ['A', 'I', 'U', 'E', 'O'].contains(&last_char) {
@@ -589,6 +599,7 @@ fn mora_to_text(mora: impl AsRef<str>) -> String {
     mora_list::mora2text(&mora).to_string()
 }
 
+#[allow(dead_code)]
 fn adjust_interrogative_accent_phrases(
     accent_phrases: &[AccentPhraseModel],
 ) -> Vec<AccentPhraseModel> {
@@ -605,6 +616,7 @@ fn adjust_interrogative_accent_phrases(
         .collect()
 }
 
+#[allow(dead_code)]
 fn adjust_interrogative_moras(accent_phrase: &AccentPhraseModel) -> Vec<MoraModel> {
     let moras = accent_phrase.moras();
     if *accent_phrase.is_interrogative() && !moras.is_empty() {
