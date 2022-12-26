@@ -44,8 +44,10 @@ impl PartialEq for OpenJtalkError {
     }
 }
 
+#[allow(dead_code)]
 pub type Result<T> = std::result::Result<T, OpenJtalkError>;
 
+#[allow(dead_code)]
 pub struct OpenJtalk {
     mecab: ManagedResource<Mecab>,
     njd: ManagedResource<Njd>,
@@ -63,6 +65,7 @@ impl OpenJtalk {
         }
     }
 
+    #[allow(dead_code)]
     pub fn extract_fullcontext(&mut self, text: impl AsRef<str>) -> Result<Vec<String>> {
         let result = self.extract_fullcontext_non_reflesh(text);
         self.jpcommon.refresh();
@@ -71,6 +74,7 @@ impl OpenJtalk {
         result
     }
 
+    #[allow(dead_code)]
     fn extract_fullcontext_non_reflesh(&mut self, text: impl AsRef<str>) -> Result<Vec<String>> {
         let mecab_text =
             text2mecab(text.as_ref()).map_err(|e| OpenJtalkError::ExtractFullContext {
@@ -110,6 +114,7 @@ impl OpenJtalk {
         }
     }
 
+    #[allow(dead_code)]
     pub fn load(&mut self, mecab_dict_dir: impl AsRef<Path>) -> Result<()> {
         let result = self.mecab.load(mecab_dict_dir.as_ref());
         if result {
@@ -123,6 +128,7 @@ impl OpenJtalk {
         }
     }
 
+    #[allow(dead_code)]
     pub fn dict_loaded(&self) -> bool {
         self.dict_loaded
     }
