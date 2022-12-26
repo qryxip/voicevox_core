@@ -28,12 +28,18 @@ jobs:
           cd crates/voicevox_core_c_api
           cargo clippy -vv --tests -- -D clippy::all -D warnings --no-deps
           cd -
+          cd crates/xtask
+          cargo clippy -vv --tests -- -D clippy::all -D warnings --no-deps
+          cd -
       # - run: cargo clippy -vv --all-features --features onnxruntime/disable-sys-build-script -- -D clippy::all -D warnings --no-deps
       - run: |
           cd crates/voicevox_core
           cargo clippy -vv -- -D clippy::all -D warnings --no-deps
           cd -
           cd crates/voicevox_core_c_api
+          cargo clippy -vv -- -D clippy::all -D warnings --no-deps
+          cd -
+          cd crates/xtask
           cargo clippy -vv -- -D clippy::all -D warnings --no-deps
           cd -
       - run: cargo fmt -- --check
