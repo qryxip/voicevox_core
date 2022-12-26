@@ -7,7 +7,7 @@ use onnxruntime::{
 };
 use result_code::VoicevoxResultCode;
 use std::ffi::CStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use status::*;
@@ -24,9 +24,9 @@ pub struct VoicevoxCore {
 }
 
 impl VoicevoxCore {
-    pub fn new_with_initialize(options: InitializeOptions) -> Result<Self> {
+    pub fn new_with_initialize(root_dir_path: &Path, options: InitializeOptions) -> Result<Self> {
         let mut this = Self::new();
-        this.initialize(options)?;
+        this.initialize(root_dir_path, options)?;
         Ok(this)
     }
 
@@ -44,7 +44,7 @@ impl VoicevoxCore {
         }
     }
 
-    pub fn initialize(&mut self, options: InitializeOptions) -> Result<()> {
+    pub fn initialize(&mut self, root_dir_path: &Path, options: InitializeOptions) -> Result<()> {
         let use_gpu = match options.acceleration_mode {
             AccelerationMode::Auto => {
                 let supported_devices = SupportedDevices::get_supported_devices()?;
@@ -63,6 +63,7 @@ impl VoicevoxCore {
         };
         self.use_gpu = use_gpu;
         self.synthesis_engine.inference_core_mut().initialize(
+            root_dir_path,
             use_gpu,
             options.cpu_num_threads,
             options.load_all_models,
@@ -106,14 +107,17 @@ impl VoicevoxCore {
         &SUPPORTED_DEVICES_CSTRING
     }
 
-    pub fn predict_duration(
+    pub fn variance_forward(
         &mut self,
         phoneme_vector: &[i64],
+        accent_vector: &[i64],
         speaker_id: u32,
-    ) -> Result<Vec<f32>> {
-        self.synthesis_engine
-            .inference_core_mut()
-            .predict_duration(phoneme_vector, speaker_id)
+    ) -> Result<(Vec<f32>, Vec<f32>)> {
+        self.synthesis_engine.inference_core_mut().variance_forward(
+            phoneme_vector,
+            accent_vector,
+            speaker_id,
+        )
     }
 
     // #[allow(clippy::too_many_arguments)]
@@ -272,19 +276,21 @@ pub struct InferenceCore {
 impl InferenceCore {
     pub fn initialize(
         &mut self,
+        root_dir_path: &Path,
         use_gpu: bool,
         cpu_num_threads: u16,
         load_all_models: bool,
     ) -> Result<()> {
         self.initialized = false;
         if !use_gpu || self.can_support_gpu_feature()? {
-            let mut status = Status::new(use_gpu, cpu_num_threads);
+            let mut status = Status::new(root_dir_path, use_gpu, cpu_num_threads);
 
             status.load_metas()?;
+            status.load();
 
             if load_all_models {
-                for model_index in 0..Status::MODELS_COUNT {
-                    status.load_model(model_index)?;
+                for library_uuid in status.usable_libraries.clone() {
+                    status.load_model(&library_uuid)?;
                 }
             }
 
@@ -312,8 +318,8 @@ impl InferenceCore {
                 .status_option
                 .as_mut()
                 .ok_or(Error::UninitializedStatus)?;
-            if let Some((model_index, _)) = get_model_index_and_speaker_id(speaker_id) {
-                status.load_model(model_index)
+            if let Some(library_uuid) = status.get_library_uuid_from_speaker_id(speaker_id) {
+                status.load_model(&library_uuid)
             } else {
                 Err(Error::InvalidSpeakerId { speaker_id })
             }
@@ -337,11 +343,12 @@ impl InferenceCore {
         self.status_option = None;
     }
 
-    pub fn predict_duration(
+    pub fn variance_forward(
         &mut self,
         phoneme_vector: &[i64],
+        accent_vector: &[i64],
         speaker_id: u32,
-    ) -> Result<Vec<f32>> {
+    ) -> Result<(Vec<f32>, Vec<f32>)> {
         if !self.initialized {
             return Err(Error::UninitializedStatus);
         }
@@ -355,32 +362,41 @@ impl InferenceCore {
             return Err(Error::InvalidSpeakerId { speaker_id });
         }
 
-        let (model_index, speaker_id) =
-            if let Some((model_index, speaker_id)) = get_model_index_and_speaker_id(speaker_id) {
-                (model_index, speaker_id)
+        let library_uuid =
+            if let Some(library_uuid) = status.get_library_uuid_from_speaker_id(speaker_id) {
+                library_uuid
             } else {
                 return Err(Error::InvalidSpeakerId { speaker_id });
             };
 
-        if model_index >= Status::MODELS_COUNT {
-            return Err(Error::InvalidModelIndex { model_index });
-        }
+        // NOTE: statusのusable_model_mapが不正でありうる場合、エラーを報告すべき？
+        let start_speaker_id = status
+            .usable_model_map
+            .get(&library_uuid)
+            .unwrap()
+            .model_config
+            .start_id as i64;
+        let model_speaker_id = speaker_id as i64 - start_speaker_id;
 
-        let mut phoneme_vector_array = NdArray::new(ndarray::arr1(phoneme_vector));
-        let mut speaker_id_array = NdArray::new(ndarray::arr1(&[speaker_id as i64]));
+        let mut phoneme_vector_array = NdArray::new(
+            ndarray::arr1(phoneme_vector)
+                .into_shape([1, phoneme_vector.len()])
+                .unwrap(),
+        );
+        let mut accent_vector_array = NdArray::new(
+            ndarray::arr1(accent_vector)
+                .into_shape([1, accent_vector.len()])
+                .unwrap(),
+        );
+        let mut speaker_id_array = NdArray::new(ndarray::arr1(&[model_speaker_id as i64]));
 
-        let input_tensors: Vec<&mut dyn AnyArray> =
-            vec![&mut phoneme_vector_array, &mut speaker_id_array];
+        let input_tensors: Vec<&mut dyn AnyArray> = vec![
+            &mut phoneme_vector_array,
+            &mut accent_vector_array,
+            &mut speaker_id_array,
+        ];
 
-        let mut output = status.predict_duration_session_run(model_index, input_tensors)?;
-
-        // for output_item in output.iter_mut() {
-        //     if *output_item < PHONEME_LENGTH_MINIMAL {
-        //         *output_item = PHONEME_LENGTH_MINIMAL;
-        //     }
-        // }
-
-        Ok(output)
+        Ok(status.variance_session_run(&library_uuid, input_tensors)?)
     }
 
     // #[allow(clippy::too_many_arguments)]

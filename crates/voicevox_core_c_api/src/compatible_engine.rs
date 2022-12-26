@@ -13,17 +13,25 @@ fn set_message(message: &str) {
 }
 
 #[no_mangle]
-pub extern "C" fn initialize(use_gpu: bool, cpu_num_threads: c_int, load_all_models: bool) -> bool {
-    let result = lock_internal().initialize(voicevox_core::InitializeOptions {
-        acceleration_mode: if use_gpu {
-            voicevox_core::AccelerationMode::Gpu
-        } else {
-            voicevox_core::AccelerationMode::Cpu
+pub extern "C" fn initialize(
+    root_dir_path: *const c_char,
+    use_gpu: bool,
+    cpu_num_threads: c_int,
+    load_all_models: bool,
+) -> bool {
+    let result = lock_internal().initialize(
+        unsafe { CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref() },
+        voicevox_core::InitializeOptions {
+            acceleration_mode: if use_gpu {
+                voicevox_core::AccelerationMode::Gpu
+            } else {
+                voicevox_core::AccelerationMode::Cpu
+            },
+            cpu_num_threads: cpu_num_threads as u16,
+            load_all_models,
+            ..Default::default()
         },
-        cpu_num_threads: cpu_num_threads as u16,
-        load_all_models,
-        ..Default::default()
-    });
+    );
     if let Some(err) = result.err() {
         set_message(&format!("{}", err));
         false
@@ -69,20 +77,27 @@ pub extern "C" fn supported_devices() -> *const c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn yukarin_s_forward(
+pub extern "C" fn variance_forward(
     length: i64,
     phoneme_list: *mut i64,
+    accent_list: *mut i64,
     speaker_id: *mut i64,
-    output: *mut f32,
+    pitch_output: *mut f32,
+    duration_output: *mut f32,
 ) -> bool {
-    let result = lock_internal().predict_duration(
+    let result = lock_internal().variance_forward(
         unsafe { std::slice::from_raw_parts_mut(phoneme_list, length as usize) },
+        unsafe { std::slice::from_raw_parts_mut(accent_list, length as usize) },
         unsafe { *speaker_id as u32 },
     );
     match result {
         Ok(output_vec) => {
-            let output_slice = unsafe { std::slice::from_raw_parts_mut(output, length as usize) };
-            output_slice.clone_from_slice(&output_vec);
+            let pitch_output_slice =
+                unsafe { std::slice::from_raw_parts_mut(pitch_output, length as usize) };
+            pitch_output_slice.clone_from_slice(&output_vec.0);
+            let duration_output_slice =
+                unsafe { std::slice::from_raw_parts_mut(duration_output, length as usize) };
+            duration_output_slice.clone_from_slice(&output_vec.1);
             true
         }
         Err(err) => {

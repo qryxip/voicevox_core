@@ -71,10 +71,14 @@ pub extern "C" fn voicevox_make_default_initialize_options() -> VoicevoxInitiali
 /// @param [in] options 初期化オプション
 /// @return 結果コード #VoicevoxResultCode
 #[no_mangle]
-pub extern "C" fn voicevox_initialize(options: VoicevoxInitializeOptions) -> VoicevoxResultCode {
+pub extern "C" fn voicevox_initialize(
+    root_dir_path: *const c_char,
+    options: VoicevoxInitializeOptions,
+) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
+        let root_dir_path = unsafe { CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref() };
         let options = unsafe { options.try_into_options() }?;
-        lock_internal().initialize(options)?;
+        lock_internal().initialize(root_dir_path, options)?;
         Ok(())
     })())
 }
@@ -106,10 +110,10 @@ pub extern "C" fn voicevox_is_gpu_mode() -> bool {
 
 /// 指定したspeaker_idのモデルが読み込まれているか判定する
 /// @return モデルが読み込まれているのであればtrue、そうでないならfalse
-#[no_mangle]
-pub extern "C" fn voicevox_is_model_loaded(speaker_id: u32) -> bool {
-    lock_internal().is_model_loaded(speaker_id)
-}
+// #[no_mangle]
+// pub extern "C" fn voicevox_is_model_loaded(speaker_id: u32) -> bool {
+//     lock_internal().is_model_loaded(speaker_id)
+// }
 
 /// このライブラリの利用を終了し、確保しているリソースを解放する
 #[no_mangle]
@@ -144,22 +148,27 @@ pub extern "C" fn voicevox_get_supported_devices_json() -> *const c_char {
 /// @param output_predict_duration_data_length uintptr_t 分のメモリ領域が割り当てられていること
 /// @param output_predict_duration_data 成功後にメモリ領域が割り当てられるので ::voicevox_predict_duration_data_free で解放する必要がある
 #[no_mangle]
-pub unsafe extern "C" fn voicevox_predict_duration(
+pub unsafe extern "C" fn voicevox_variance_forward(
     length: usize,
     phoneme_vector: *mut i64,
+    accent_vector: *mut i64,
     speaker_id: u32,
-    output_predict_duration_data_length: *mut usize,
-    output_predict_duration_data: *mut *mut f32,
+    output_variance_forward_data_length: *mut usize,
+    output_variance_forward_pitch_data: *mut *mut f32,
+    output_variance_forward_duration_data: *mut *mut f32,
 ) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
-        let output_vec = lock_internal().predict_duration(
+        let output_vec = lock_internal().variance_forward(
             std::slice::from_raw_parts_mut(phoneme_vector, length),
+            std::slice::from_raw_parts_mut(accent_vector, length),
             speaker_id,
         )?;
-        write_predict_duration_to_ptr(
-            output_predict_duration_data,
-            output_predict_duration_data_length,
-            &output_vec,
+        write_variance_forward_to_ptr(
+            output_variance_forward_pitch_data,
+            output_variance_forward_duration_data,
+            output_variance_forward_data_length,
+            &output_vec.0,
+            &output_vec.1,
         );
         Ok(())
     })())
@@ -171,8 +180,12 @@ pub unsafe extern "C" fn voicevox_predict_duration(
 /// # Safety
 /// @param predict_duration_data 実行後に割り当てられたメモリ領域が解放される
 #[no_mangle]
-pub unsafe extern "C" fn voicevox_predict_duration_data_free(predict_duration_data: *mut f32) {
-    libc::free(predict_duration_data as *mut c_void);
+pub unsafe extern "C" fn voicevox_variance_forward_data_free(
+    variance_forward_pitch_data: *mut f32,
+    variance_forward_duration_data: *mut f32,
+) {
+    libc::free(variance_forward_pitch_data as *mut c_void);
+    libc::free(variance_forward_duration_data as *mut c_void);
 }
 
 /// モーラごとのF0を推論する
