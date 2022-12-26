@@ -388,7 +388,7 @@ impl InferenceCore {
                 .into_shape([1, accent_vector.len()])
                 .unwrap(),
         );
-        let mut speaker_id_array = NdArray::new(ndarray::arr1(&[model_speaker_id as i64]));
+        let mut speaker_id_array = NdArray::new(ndarray::arr1(&[model_speaker_id]));
 
         let input_tensors: Vec<&mut dyn AnyArray> = vec![
             &mut phoneme_vector_array,

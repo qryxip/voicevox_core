@@ -70,8 +70,11 @@ pub extern "C" fn voicevox_make_default_initialize_options() -> VoicevoxInitiali
 /// 初期化する
 /// @param [in] options 初期化オプション
 /// @return 結果コード #VoicevoxResultCode
+///
+/// # Safety
+/// @param root_dir_path nul-terminatedな文字列を指す、有効なポインタであること
 #[no_mangle]
-pub extern "C" fn voicevox_initialize(
+pub unsafe extern "C" fn voicevox_initialize(
     root_dir_path: *const c_char,
     options: VoicevoxInitializeOptions,
 ) -> VoicevoxResultCode {
