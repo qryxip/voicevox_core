@@ -90,7 +90,7 @@ jobs:
           cargo test -vv --features ,${{ matrix.features }}
           cd -
           cd crates/xtask
-          cargo test -vv --features ,${{ matrix.features }}
+          cargo test -vv
           cd -
 
   xtask-generate-c-header:
