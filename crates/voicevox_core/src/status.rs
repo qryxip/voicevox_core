@@ -323,6 +323,7 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
+            // FIXME: ここで返すための適切なエラーを定義する
             Err(Error::InvalidModelIndex { model_index: 0 })
         }
     }
@@ -340,6 +341,7 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
+            // FIXME: ここで返すための適切なエラーを定義する
             Err(Error::InvalidModelIndex { model_index: 0 })
         }
     }
@@ -357,6 +359,7 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
+            // FIXME: ここで返すための適切なエラーを定義する
             Err(Error::InvalidModelIndex { model_index: 0 })
         }
     }
