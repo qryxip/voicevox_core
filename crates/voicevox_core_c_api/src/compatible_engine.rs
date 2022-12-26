@@ -91,13 +91,13 @@ pub extern "C" fn variance_forward(
         unsafe { *speaker_id as u32 },
     );
     match result {
-        Ok(output_vec) => {
+        Ok(output_vec_pair) => {
             let pitch_output_slice =
                 unsafe { std::slice::from_raw_parts_mut(pitch_output, length as usize) };
-            pitch_output_slice.clone_from_slice(&output_vec.0);
+            pitch_output_slice.clone_from_slice(&output_vec_pair.0);
             let duration_output_slice =
                 unsafe { std::slice::from_raw_parts_mut(duration_output, length as usize) };
-            duration_output_slice.clone_from_slice(&output_vec.1);
+            duration_output_slice.clone_from_slice(&output_vec_pair.1);
             true
         }
         Err(err) => {

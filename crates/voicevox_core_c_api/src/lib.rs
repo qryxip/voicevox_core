@@ -158,7 +158,7 @@ pub unsafe extern "C" fn voicevox_variance_forward(
     output_variance_forward_duration_data: *mut *mut f32,
 ) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
-        let output_vec = lock_internal().variance_forward(
+        let output_vec_pair = lock_internal().variance_forward(
             std::slice::from_raw_parts_mut(phoneme_vector, length),
             std::slice::from_raw_parts_mut(accent_vector, length),
             speaker_id,
@@ -167,8 +167,8 @@ pub unsafe extern "C" fn voicevox_variance_forward(
             output_variance_forward_pitch_data,
             output_variance_forward_duration_data,
             output_variance_forward_data_length,
-            &output_vec.0,
-            &output_vec.1,
+            &output_vec_pair.0,
+            &output_vec_pair.1,
         );
         Ok(())
     })())
