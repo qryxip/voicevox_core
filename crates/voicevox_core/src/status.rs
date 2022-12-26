@@ -141,7 +141,7 @@ fn open_model_files(
     )
 }
 
-// FIXME: 不正なパスやパスやlibraries.jsonの内容に対してエラーを報告すべき
+// FIXME: 不正なパスやlibraries.jsonの内容に対してエラーを報告すべき
 fn open_libraries(root_dir_path: &Path) -> BTreeMap<String, bool> {
     let mut libraries_path = root_dir_path.to_path_buf();
     libraries_path.push("libraries.json");
