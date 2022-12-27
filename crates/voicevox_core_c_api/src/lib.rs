@@ -70,14 +70,18 @@ pub extern "C" fn voicevox_make_default_initialize_options() -> VoicevoxInitiali
 /// 初期化する
 /// @param [in] options 初期化オプション
 /// @return 結果コード #VoicevoxResultCode
+///
+/// # Safety
+/// @param root_dir_path NUL-terminatedな文字列を指す、有効なポインタであること
+/// @param options open_jtalk_dict_dirがNUL-terminatedな文字列を指す、有効なポインタであること
 #[no_mangle]
-pub extern "C" fn voicevox_initialize(
+pub unsafe extern "C" fn voicevox_initialize(
     root_dir_path: *const c_char,
     options: VoicevoxInitializeOptions,
 ) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
-        let root_dir_path = unsafe { CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref() };
-        let options = unsafe { options.try_into_options() }?;
+        let root_dir_path = CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref();
+        let options = options.try_into_options()?;
         lock_internal().initialize(root_dir_path, options)?;
         Ok(())
     })())
