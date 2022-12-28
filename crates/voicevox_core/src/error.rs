@@ -45,7 +45,7 @@ pub enum Error {
     InvalidSpeakerId { speaker_id: u32 },
 
     #[error(
-        "{}: {library_uuid:}",
+        "{}: {library_uuid:?}",
         base_error_message(VOICEVOX_RESULT_INVALID_LIBRARY_UUID_ERROR)
     )]
     InvalidLibraryUuid { library_uuid: String },
