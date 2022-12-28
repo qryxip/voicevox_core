@@ -19,8 +19,11 @@ pub extern "C" fn initialize(
     cpu_num_threads: c_int,
     load_all_models: bool,
 ) -> bool {
+    let Ok(root_dir_path) = unsafe { CStr::from_ptr(root_dir_path) }.to_str() else {
+        return false;
+    };
     let result = lock_internal().initialize(
-        unsafe { CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref() },
+        root_dir_path.as_ref(),
         voicevox_core::InitializeOptions {
             acceleration_mode: if use_gpu {
                 voicevox_core::AccelerationMode::Gpu

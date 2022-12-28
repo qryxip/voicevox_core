@@ -76,7 +76,7 @@ pub extern "C" fn voicevox_initialize(
     options: VoicevoxInitializeOptions,
 ) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
-        let root_dir_path = unsafe { CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref() };
+        let root_dir_path = ensure_utf8(unsafe { CStr::from_ptr(root_dir_path) })?.as_ref();
         let options = unsafe { options.try_into_options() }?;
         lock_internal().initialize(root_dir_path, options)?;
         Ok(())

@@ -21,6 +21,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 open_jtalk = { git = "https://github.com/VOICEVOX/open_jtalk-rs.git", rev="9edab53f0bfa877dbb37224d17fd0f3efbe32abd" }
 regex = "1.6.0"
+fs-err = "2.9.0"
 
 [dev-dependencies]
 rstest = "0.15.0"
