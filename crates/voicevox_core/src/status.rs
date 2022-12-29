@@ -13,19 +13,19 @@ cfg_if! {
     }
 }
 use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::CString;
 use std::path::{Path, PathBuf};
 
 pub struct Status {
     root_dir_path: PathBuf,
     light_session_options: SessionOptions, // 軽いモデルはこちらを使う
     heavy_session_options: SessionOptions, // 重いモデルはこちらを使う
-    supported_styles: BTreeSet<u32>,
     libraries: Option<BTreeMap<String, bool>>,
     pub usable_libraries: BTreeSet<String>,
     usable_model_data_map: BTreeMap<String, ModelData>,
     pub usable_model_map: BTreeMap<String, Models>,
     pub speaker_id_map: BTreeMap<u64, String>,
-    metas_str: String,
+    pub metas_str: CString,
 }
 
 pub struct Models {
@@ -168,35 +168,18 @@ fn open_libraries(root_dir_path: &Path) -> Result<BTreeMap<String, bool>> {
 unsafe impl Send for Status {}
 
 impl Status {
-    pub const METAS_STR: &'static str =
-        include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/metas.json"));
-
     pub fn new(root_dir_path: &Path, use_gpu: bool, cpu_num_threads: u16) -> Self {
         Self {
             root_dir_path: root_dir_path.to_path_buf(),
             light_session_options: SessionOptions::new(cpu_num_threads, false),
             heavy_session_options: SessionOptions::new(cpu_num_threads, use_gpu),
-            supported_styles: BTreeSet::default(),
             libraries: None,
             usable_libraries: BTreeSet::new(),
             usable_model_data_map: BTreeMap::new(),
             usable_model_map: BTreeMap::new(),
             speaker_id_map: BTreeMap::new(),
-            metas_str: String::new(),
+            metas_str: CString::default(),
         }
-    }
-
-    pub fn load_metas(&mut self) -> Result<()> {
-        let metas: Vec<Meta> =
-            serde_json::from_str(Self::METAS_STR).map_err(|e| Error::LoadMetas(e.into()))?;
-
-        for meta in metas.iter() {
-            for style in meta.styles().iter() {
-                self.supported_styles.insert(*style.id() as u32);
-            }
-        }
-
-        Ok(())
     }
 
     pub fn load(&mut self) -> Result<()> {
@@ -241,7 +224,7 @@ impl Status {
                 }
             }
         }
-        self.metas_str = serde_json::to_string(&all_metas).unwrap();
+        self.metas_str = CString::new(serde_json::to_string(&all_metas).unwrap()).unwrap();
         Ok(())
     }
 
@@ -306,10 +289,6 @@ impl Status {
         };
 
         Ok(session_builder.with_model_from_memory(model_bytes)?)
-    }
-
-    pub fn validate_speaker_id(&self, speaker_id: u32) -> bool {
-        self.supported_styles.contains(&speaker_id)
     }
 
     pub fn variance_session_run(
@@ -409,17 +388,6 @@ impl Status {
 //         assert!(status.models.predict_intonation.is_empty());
 //         assert!(status.models.decode.is_empty());
 //         assert!(status.supported_styles.is_empty());
-//     }
-//
-//     #[rstest]
-//     fn status_load_metas_works() {
-//         let mut status = Status::new(true, 0);
-//         let result = status.load_metas();
-//         assert_eq!(Ok(()), result);
-//         let mut expected = BTreeSet::new();
-//         expected.insert(0);
-//         expected.insert(1);
-//         assert_eq!(expected, status.supported_styles);
 //     }
 //
 //     #[rstest]
