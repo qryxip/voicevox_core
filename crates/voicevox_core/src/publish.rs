@@ -284,7 +284,7 @@ impl InferenceCore {
             let mut status = Status::new(root_dir_path, use_gpu, cpu_num_threads);
 
             status.load_metas()?;
-            status.load();
+            status.load()?;
 
             if load_all_models {
                 for library_uuid in status.usable_libraries.clone() {
@@ -620,6 +620,9 @@ pub const fn error_result_to_message(result_code: VoicevoxResultCode) -> &'stati
             "入力テキストをAquesTalkライクな読み仮名としてパースすることに失敗しました\0"
         }
         VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR => "無効なaudio_queryです\0",
+        SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR => "libraries.jsonの読み込みに失敗しました\0",
+        SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR => "model_config.jsonの読み込みに失敗しました\0",
+        SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR => "無効なlibrary_uuidです\0",
     }
 }
 

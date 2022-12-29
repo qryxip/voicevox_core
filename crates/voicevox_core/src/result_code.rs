@@ -33,4 +33,10 @@ pub enum VoicevoxResultCode {
     VOICEVOX_RESULT_PARSE_KANA_ERROR = 12,
     /// 無効なAudioQuery
     VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR = 13,
+    /// libraries.jsonの読み込みに失敗した
+    SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR = 100,
+    /// model_config.jsonの読み込みに失敗した
+    SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR = 101,
+    /// 無効なlibrary_uuidが指定された
+    SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR = 102,
 }

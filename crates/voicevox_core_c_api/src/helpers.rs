@@ -34,6 +34,9 @@ pub(crate) fn into_result_code_with_error(result: CApiResult<()>) -> VoicevoxRes
                 VOICEVOX_RESULT_EXTRACT_FULL_CONTEXT_LABEL_ERROR
             }
             Err(RustApi(ParseKana(_))) => VOICEVOX_RESULT_PARSE_KANA_ERROR,
+            Err(RustApi(LoadLibraries(_))) => SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR,
+            Err(RustApi(LoadModelConfig { .. })) => SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR,
+            Err(RustApi(InvalidLibraryUuid { .. })) => SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR,
             Err(InvalidUtf8Input) => VOICEVOX_RESULT_INVALID_UTF8_INPUT_ERROR,
             Err(InvalidAudioQuery(_)) => VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR,
         }

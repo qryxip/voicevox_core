@@ -117,38 +117,51 @@ pub struct ModelConfig {
     pub start_id: usize,
 }
 
-// FIXME: 不正なパスやmetasの内容に対してエラーを報告すべき
-fn open_metas(root_dir_path: &Path, library_uuid: &str) -> Vec<Meta> {
+fn open_metas(root_dir_path: &Path, library_uuid: &str) -> Result<Vec<Meta>> {
     let metas_path = root_dir_path.join(library_uuid).join("metas.json");
-    serde_json::from_str(&std::fs::read_to_string(metas_path).unwrap()).unwrap()
+    (|| {
+        let metas = serde_json::from_str(&fs_err::read_to_string(metas_path)?)?;
+        Ok(metas)
+    })()
+    .map_err(Error::LoadMetas)
 }
 
-// FIXME: 不正なパスやモデルファイルの内容に対してエラーを報告すべき
-fn open_model_files(
-    root_dir_path: &Path,
-    library_uuid: &str,
-) -> (Vec<u8>, Vec<u8>, Vec<u8>, ModelConfig) // (variance_model, embedder_model, decoder_model, model_config)
-{
-    let variance_model_path = root_dir_path.join(library_uuid).join("variance_model.onnx");
-    let embedder_model_path = root_dir_path.join(library_uuid).join("embedder_model.onnx");
-    let decoder_model_path = root_dir_path.join(library_uuid).join("decoder_model.onnx");
-    let model_config_path = root_dir_path.join(library_uuid).join("model_config.json");
-    (
-        std::fs::read(variance_model_path).unwrap(),
-        std::fs::read(embedder_model_path).unwrap(),
-        std::fs::read(decoder_model_path).unwrap(),
-        serde_json::from_str(&std::fs::read_to_string(model_config_path).unwrap()).unwrap(),
-    )
+fn open_model_files(root_dir_path: &Path, library_uuid: &str) -> Result<ModelData> {
+    let path = |file_name| root_dir_path.join(library_uuid).join(file_name);
+
+    let variance_model = open_model_file(&path("variance_model.onnx"))?;
+    let embedder_model = open_model_file(&path("embedder_model.onnx"))?;
+    let decoder_model = open_model_file(&path("decoder_model.onnx"))?;
+    let model_config = {
+        let path = path("model_config.json");
+        (|| {
+            let model_config = serde_json::from_str(&fs_err::read_to_string(&path)?)?;
+            Ok(model_config)
+        })()
+        .map_err(move |cause| Error::LoadModelConfig { path, cause })?
+    };
+
+    return Ok(ModelData {
+        variance_model,
+        embedder_model,
+        decoder_model,
+        model_config,
+    });
+
+    fn open_model_file(path: &Path) -> Result<Vec<u8>> {
+        fs_err::read(path)
+            .map_err(Into::into)
+            .map_err(Error::LoadModel)
+    }
 }
 
-// FIXME: 不正なパスやlibraries.jsonの内容に対してエラーを報告すべき
-fn open_libraries(root_dir_path: &Path) -> BTreeMap<String, bool> {
-    let mut libraries_path = root_dir_path.to_path_buf();
-    libraries_path.push("libraries.json");
-    serde_json::from_str::<BTreeMap<String, bool>>(
-        &std::fs::read_to_string(libraries_path).unwrap(),
-    )
-    .unwrap()
+fn open_libraries(root_dir_path: &Path) -> Result<BTreeMap<String, bool>> {
+    (|| {
+        let path = root_dir_path.join("libraries.json");
+        let libraries = serde_json::from_str(&fs_err::read_to_string(path)?)?;
+        Ok(libraries)
+    })()
+    .map_err(Error::LoadLibraries)
 }
 
 #[allow(unsafe_code)]
@@ -186,9 +199,8 @@ impl Status {
         Ok(())
     }
 
-    // FIXME: 数カ所でエラーが発生しうるため、Resultを返すようにしたい
-    pub fn load(&mut self) {
-        self.libraries = Some(open_libraries(&self.root_dir_path));
+    pub fn load(&mut self) -> Result<()> {
+        self.libraries = Some(open_libraries(&self.root_dir_path)?);
         self.usable_libraries = self
             .libraries
             .iter()
@@ -199,21 +211,13 @@ impl Status {
 
         let mut all_metas: Vec<Meta> = Vec::new();
         for library_uuid in self.usable_libraries.iter() {
-            let (variance_model, embedder_model, decoder_model, model_config) =
-                open_model_files(&self.root_dir_path, library_uuid);
-            let start_speaker_id = model_config.start_id;
+            let mode_data = open_model_files(&self.root_dir_path, library_uuid)?;
+            let start_speaker_id = mode_data.model_config.start_id;
 
-            let mut metas = open_metas(&self.root_dir_path, library_uuid);
+            let mut metas = open_metas(&self.root_dir_path, library_uuid)?;
 
-            self.usable_model_data_map.insert(
-                library_uuid.clone(),
-                ModelData {
-                    variance_model,
-                    embedder_model,
-                    decoder_model,
-                    model_config,
-                },
-            );
+            self.usable_model_data_map
+                .insert(library_uuid.clone(), mode_data);
 
             for meta in metas.as_mut_slice() {
                 let mut speaker_index: Option<usize> = None;
@@ -238,11 +242,16 @@ impl Status {
             }
         }
         self.metas_str = serde_json::to_string(&all_metas).unwrap();
+        Ok(())
     }
 
-    // FIXME: 不正なlibrary_uuidに対してエラーを報告すべき
     pub fn load_model(&mut self, library_uuid: &str) -> Result<()> {
-        let model_data = self.usable_model_data_map.remove(library_uuid).unwrap();
+        let model_data = self
+            .usable_model_data_map
+            .remove(library_uuid)
+            .ok_or_else(|| Error::InvalidLibraryUuid {
+                library_uuid: library_uuid.to_owned(),
+            })?;
         let variance_session = self
             .new_session(&model_data.variance_model, &self.light_session_options)
             .map_err(Error::LoadModel)?;
@@ -323,8 +332,9 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
-            // FIXME: ここで返すための適切なエラーを定義する
-            Err(Error::InvalidModelIndex { model_index: 0 })
+            Err(Error::InvalidLibraryUuid {
+                library_uuid: library_uuid.to_owned(),
+            })
         }
     }
 
@@ -341,8 +351,9 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
-            // FIXME: ここで返すための適切なエラーを定義する
-            Err(Error::InvalidModelIndex { model_index: 0 })
+            Err(Error::InvalidLibraryUuid {
+                library_uuid: library_uuid.to_owned(),
+            })
         }
     }
 
@@ -359,8 +370,9 @@ impl Status {
                 Err(Error::InferenceFailed)
             }
         } else {
-            // FIXME: ここで返すための適切なエラーを定義する
-            Err(Error::InvalidModelIndex { model_index: 0 })
+            Err(Error::InvalidLibraryUuid {
+                library_uuid: library_uuid.to_owned(),
+            })
         }
     }
 

@@ -80,7 +80,7 @@ pub unsafe extern "C" fn voicevox_initialize(
     options: VoicevoxInitializeOptions,
 ) -> VoicevoxResultCode {
     into_result_code_with_error((|| {
-        let root_dir_path = CStr::from_ptr(root_dir_path).to_str().unwrap().as_ref();
+        let root_dir_path = ensure_utf8(CStr::from_ptr(root_dir_path))?.as_ref();
         let options = options.try_into_options()?;
         lock_internal().initialize(root_dir_path, options)?;
         Ok(())
