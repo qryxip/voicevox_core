@@ -21,8 +21,8 @@ pub enum VoicevoxResultCode {
     VOICEVOX_RESULT_UNINITIALIZED_STATUS_ERROR = 6,
     /// 無効なspeaker_idが指定された
     VOICEVOX_RESULT_INVALID_SPEAKER_ID_ERROR = 7,
-    /// 無効なlibrary_uuidが指定された
-    VOICEVOX_RESULT_INVALID_LIBRARY_UUID_ERROR = 8,
+    /// 無効なmodel_indexが指定された
+    VOICEVOX_RESULT_INVALID_MODEL_INDEX_ERROR = 8,
     /// 推論に失敗した
     VOICEVOX_RESULT_INFERENCE_ERROR = 9,
     /// コンテキストラベル出力に失敗した
@@ -34,7 +34,9 @@ pub enum VoicevoxResultCode {
     /// 無効なAudioQuery
     VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR = 13,
     /// libraries.jsonの読み込みに失敗した
-    VOICEVOX_RESULT_LOAD_LIBRARIES_ERROR = 14,
+    SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR = 100,
     /// model_config.jsonの読み込みに失敗した
-    VOICEVOX_RESULT_LOAD_MODEL_CONFIG_ERROR = 15,
+    SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR = 101,
+    /// 無効なlibrary_uuidが指定された
+    SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR = 102,
 }

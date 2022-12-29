@@ -45,10 +45,10 @@ pub enum Error {
     InvalidSpeakerId { speaker_id: u32 },
 
     #[error(
-        "{}: {library_uuid:?}",
-        base_error_message(VOICEVOX_RESULT_INVALID_LIBRARY_UUID_ERROR)
+        "{}: {model_index}",
+        base_error_message(VOICEVOX_RESULT_INVALID_MODEL_INDEX_ERROR)
     )]
-    InvalidLibraryUuid { library_uuid: String },
+    InvalidModelIndex { model_index: usize },
 
     #[error("{}", base_error_message(VOICEVOX_RESULT_INFERENCE_ERROR))]
     InferenceFailed,
@@ -62,12 +62,12 @@ pub enum Error {
     #[error("{},{0}", base_error_message(VOICEVOX_RESULT_PARSE_KANA_ERROR))]
     ParseKana(#[from] KanaParseError),
 
-    #[error("{},{0}", base_error_message(VOICEVOX_RESULT_LOAD_LIBRARIES_ERROR))]
+    #[error("{},{0}", base_error_message(SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR))]
     LoadLibraries(#[source] anyhow::Error),
 
     #[error(
         "{}({}),{cause}",
-        base_error_message(VOICEVOX_RESULT_LOAD_MODEL_CONFIG_ERROR),
+        base_error_message(SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR),
         path.display()
     )]
     LoadModelConfig {
@@ -75,6 +75,12 @@ pub enum Error {
         #[source]
         cause: anyhow::Error,
     },
+
+    #[error(
+        "{}: {library_uuid:?}",
+        base_error_message(SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR)
+    )]
+    InvalidLibraryUuid { library_uuid: String },
 }
 
 impl PartialEq for Error {
@@ -99,15 +105,23 @@ impl PartialEq for Error {
                 },
             ) => speaker_id1 == speaker_id2,
             (
-                Self::InvalidLibraryUuid {
-                    library_uuid: model_index1,
+                Self::InvalidModelIndex {
+                    model_index: model_index1,
                 },
-                Self::InvalidLibraryUuid {
-                    library_uuid: model_index2,
+                Self::InvalidModelIndex {
+                    model_index: model_index2,
                 },
             ) => model_index1 == model_index2,
             (Self::ExtractFullContextLabel(e1), Self::ExtractFullContextLabel(e2)) => e1 == e2,
             (Self::ParseKana(e1), Self::ParseKana(e2)) => e1 == e2,
+            (
+                Self::InvalidLibraryUuid {
+                    library_uuid: library_uuid1,
+                },
+                Self::InvalidLibraryUuid {
+                    library_uuid: library_uuid2,
+                },
+            ) => library_uuid1 == library_uuid2,
             (
                 Self::LoadModelConfig {
                     path: path1,

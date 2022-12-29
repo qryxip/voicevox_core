@@ -28,14 +28,15 @@ pub(crate) fn into_result_code_with_error(result: CApiResult<()>) -> VoicevoxRes
             Err(RustApi(GetSupportedDevices(_))) => VOICEVOX_RESULT_GET_SUPPORTED_DEVICES_ERROR,
             Err(RustApi(UninitializedStatus)) => VOICEVOX_RESULT_UNINITIALIZED_STATUS_ERROR,
             Err(RustApi(InvalidSpeakerId { .. })) => VOICEVOX_RESULT_INVALID_SPEAKER_ID_ERROR,
-            Err(RustApi(InvalidLibraryUuid { .. })) => VOICEVOX_RESULT_INVALID_LIBRARY_UUID_ERROR,
+            Err(RustApi(InvalidModelIndex { .. })) => VOICEVOX_RESULT_INVALID_MODEL_INDEX_ERROR,
             Err(RustApi(InferenceFailed)) => VOICEVOX_RESULT_INFERENCE_ERROR,
             Err(RustApi(ExtractFullContextLabel(_))) => {
                 VOICEVOX_RESULT_EXTRACT_FULL_CONTEXT_LABEL_ERROR
             }
             Err(RustApi(ParseKana(_))) => VOICEVOX_RESULT_PARSE_KANA_ERROR,
-            Err(RustApi(LoadLibraries(_))) => VOICEVOX_RESULT_LOAD_LIBRARIES_ERROR,
-            Err(RustApi(LoadModelConfig { .. })) => VOICEVOX_RESULT_LOAD_MODEL_CONFIG_ERROR,
+            Err(RustApi(LoadLibraries(_))) => SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR,
+            Err(RustApi(LoadModelConfig { .. })) => SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR,
+            Err(RustApi(InvalidLibraryUuid { .. })) => SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR,
             Err(InvalidUtf8Input) => VOICEVOX_RESULT_INVALID_UTF8_INPUT_ERROR,
             Err(InvalidAudioQuery(_)) => VOICEVOX_RESULT_INVALID_AUDIO_QUERY_ERROR,
         }
