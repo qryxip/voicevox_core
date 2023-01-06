@@ -5,7 +5,7 @@ use derive_new::new;
 // use super::full_context_label::Utterance;
 use super::open_jtalk::OpenJtalk;
 use super::*;
-use crate::numerics::F32Ext as _;
+// use crate::numerics::F32Ext as _;
 use crate::InferenceCore;
 
 #[allow(dead_code)]
