@@ -33,6 +33,9 @@ impl VoicevoxCore {
     }
 
     fn new() -> Self {
+        #[cfg(windows)]
+        list_windows_video_cards();
+
         Self {
             synthesis_engine: SynthesisEngine::new(
                 InferenceCore::new(false, None),
@@ -614,6 +617,44 @@ pub const fn error_result_to_message(result_code: VoicevoxResultCode) -> &'stati
         SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR => "libraries.jsonの読み込みに失敗しました\0",
         SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR => "model_config.jsonの読み込みに失敗しました\0",
         SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR => "無効なlibrary_uuidです\0",
+    }
+}
+
+#[cfg(windows)]
+fn list_windows_video_cards() {
+    use std::{ffi::OsString, os::windows::ffi::OsStringExt as _};
+
+    use humansize::BINARY;
+    use tracing::{error, info};
+    use windows::Win32::Graphics::Dxgi::{
+        CreateDXGIFactory, IDXGIFactory, DXGI_ADAPTER_DESC, DXGI_ERROR_NOT_FOUND,
+    };
+
+    info!("検出されたGPU (DirectMLには1番目のGPUが使われます):");
+    match list_windows_video_cards() {
+        Ok(descs) => {
+            for desc in descs {
+                let description = OsString::from_wide(trim_nul(&desc.Description));
+                let vram = humansize::format_size(desc.DedicatedVideoMemory, BINARY);
+                info!("  - {description:?} ({vram})");
+            }
+        }
+        Err(err) => error!("{err}"),
+    }
+
+    fn list_windows_video_cards() -> windows::core::Result<Vec<DXGI_ADAPTER_DESC>> {
+        #[allow(unsafe_code)]
+        unsafe {
+            let factory = CreateDXGIFactory::<IDXGIFactory>()?;
+            (0..)
+                .map(|i| factory.EnumAdapters(i)?.GetDesc())
+                .take_while(|r| !matches!(r, Err(e) if e.code() == DXGI_ERROR_NOT_FOUND))
+                .collect()
+        }
+    }
+
+    fn trim_nul(s: &[u16]) -> &[u16] {
+        &s[..s.iter().position(|&c| c == 0x0000).unwrap_or(s.len())]
     }
 }
 
