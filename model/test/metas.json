@@ -1,0 +1,10 @@
+[
+  {
+    "name": "デモボイス",
+    "styles": [
+      { "name": "ノーマル", "id": 0 }
+    ],
+    "speaker_uuid": "3b000dd2-8ee2-4dae-8bc6-30dccb6087a3",
+    "version": "0.0.1"
+  }
+]
