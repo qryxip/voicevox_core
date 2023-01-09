@@ -6,13 +6,14 @@ from numpy.typing import NDArray
 
 from voicevox_core import AccelerationMode, AudioQuery, Meta, SupportedDevices
 
-METAS: Final[List[Meta]]
+# METAS: Final[List[Meta]]
 SUPPORTED_DEVICES: Final[SupportedDevices]
 __version__: str
 
 class VoicevoxCore:
     def __init__(
         self,
+        root_dir_path: Union[Path, str],
         acceleration_mode: Union[
             AccelerationMode, Literal["AUTO", "CPU", "GPU"]
         ] = AccelerationMode.AUTO,
@@ -43,6 +44,14 @@ class VoicevoxCore:
         GPUモードならtrue、そうでないならfalse
         """
         ...
+    def metas(self) -> List[Meta]:
+        """メタデータ一覧を返す
+
+        Returns
+        -------
+        メタデータ
+        """
+        ...
     def load_model(self, speaker_id: int) -> None:
         """モデルを読み込む。
 
@@ -60,9 +69,10 @@ class VoicevoxCore:
         モデルが読み込まれているのであればtrue、そうでないならfalse
         """
         ...
-    def predict_duration(
+    def variance_forward(
         self,
         phoneme_vector: NDArray[np.int64],
+        accent_vector: NDArray[np.int64],
         speaker_id: int,
     ) -> NDArray[np.float32]:
         """音素ごとの長さを推論する。
@@ -79,49 +89,11 @@ class VoicevoxCore:
         音素ごとの長さ
         """
         ...
-    def predict_intonation(
+    def decode_forward(
         self,
-        length: int,
-        vowel_phoneme_vector: NDArray[np.int64],
-        consonant_phoneme_vector: NDArray[np.int64],
-        start_accent_vector: NDArray[np.int64],
-        end_accent_vector: NDArray[np.int64],
-        start_accent_phrase_vector: NDArray[np.int64],
-        end_accent_phrase_vector: NDArray[np.int64],
-        speaker_id: int,
-    ) -> NDArray[np.float32]:
-        """モーラごとのF0を推論する。
-
-        Parameters
-        ----------
-        length
-            vowel_phoneme_vector, consonant_phoneme_vector, start_accent_vector, end_accent_vector, start_accent_phrase_vector, end_accent_phrase_vector, output のデータ長。
-        vowel_phoneme_vector
-            母音の音素データ。
-        consonant_phoneme_vector
-            子音の音素データ。
-        start_accent_vector
-            アクセントの開始位置のデータ。
-        end_accent_vector
-            アクセントの終了位置のデータ。
-        start_accent_phrase_vector
-            アクセント句の開始位置のデータ。
-        end_accent_phrase_vector
-            アクセント句の終了位置のデータ。
-        speaker_id
-            話者ID。
-
-        Returns
-        -------
-        モーラごとのF0
-        """
-        ...
-    def decode(
-        self,
-        length: int,
-        phoneme_size: int,
-        f0: NDArray[np.float32],
-        phoneme: NDArray[np.float32],
+        phoneme_vector: NDArray[np.int64],
+        pitch_vector: NDArray[np.float32],
+        duration_vector: NDArray[np.float32],
         speaker_id: int,
     ) -> NDArray[np.float32]:
         """decodeを実行する。
