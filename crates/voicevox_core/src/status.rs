@@ -419,7 +419,7 @@ impl Status {
 
         let mut embedded_vector_array = NdArray::new(
             ndarray::arr1(embedded_vector)
-                .into_shape([1, embedded_vector.len(), Status::HIDDEN_SIZE])
+                .into_shape([1, durations.len(), Status::HIDDEN_SIZE])
                 .unwrap(),
         );
         let mut duration_vector_array = NdArray::new(
@@ -436,68 +436,148 @@ impl Status {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//
-//     use super::*;
-//     use pretty_assertions::assert_eq;
-//
-//     #[rstest]
-//     #[case(true, 0)]
-//     #[case(true, 1)]
-//     #[case(true, 8)]
-//     #[case(false, 2)]
-//     #[case(false, 4)]
-//     #[case(false, 8)]
-//     #[case(false, 0)]
-//     fn status_new_works(#[case] use_gpu: bool, #[case] cpu_num_threads: u16) {
-//         let status = Status::new(use_gpu, cpu_num_threads);
-//         assert_eq!(false, status.light_session_options.use_gpu);
-//         assert_eq!(use_gpu, status.heavy_session_options.use_gpu);
-//         assert_eq!(
-//             cpu_num_threads,
-//             status.light_session_options.cpu_num_threads
-//         );
-//         assert_eq!(
-//             cpu_num_threads,
-//             status.heavy_session_options.cpu_num_threads
-//         );
-//         assert!(status.models.predict_duration.is_empty());
-//         assert!(status.models.predict_intonation.is_empty());
-//         assert!(status.models.decode.is_empty());
-//         assert!(status.supported_styles.is_empty());
-//     }
-//
-//     #[rstest]
-//     fn supported_devices_get_supported_devices_works() {
-//         let result = SupportedDevices::get_supported_devices();
-//         // 環境によって結果が変わるので、関数呼び出しが成功するかどうかの確認のみ行う
-//         assert!(result.is_ok(), "{:?}", result);
-//     }
-//
-//     #[rstest]
-//     fn status_load_model_works() {
-//         let mut status = Status::new(false, 0);
-//         let result = status.load_model(0);
-//         assert_eq!(Ok(()), result);
-//         assert_eq!(1, status.models.predict_duration.len());
-//         assert_eq!(1, status.models.predict_intonation.len());
-//         assert_eq!(1, status.models.decode.len());
-//     }
-//
-//     #[rstest]
-//     fn status_is_model_loaded_works() {
-//         let mut status = Status::new(false, 0);
-//         let model_index = 0;
-//         assert!(
-//             !status.is_model_loaded(model_index),
-//             "model should  not be loaded"
-//         );
-//         let result = status.load_model(model_index);
-//         assert_eq!(Ok(()), result);
-//         assert!(
-//             status.is_model_loaded(model_index),
-//             "model should be loaded"
-//         );
-//     }
-// }
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[rstest]
+    #[case(true, 0)]
+    #[case(true, 1)]
+    #[case(true, 8)]
+    #[case(false, 2)]
+    #[case(false, 4)]
+    #[case(false, 8)]
+    #[case(false, 0)]
+    fn status_new_works(#[case] use_gpu: bool, #[case] cpu_num_threads: u16) {
+        let status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            use_gpu,
+            cpu_num_threads,
+        );
+        assert_eq!(false, status.light_session_options.use_gpu);
+        assert_eq!(use_gpu, status.heavy_session_options.use_gpu);
+        assert_eq!(
+            cpu_num_threads,
+            status.light_session_options.cpu_num_threads
+        );
+        assert_eq!(
+            cpu_num_threads,
+            status.heavy_session_options.cpu_num_threads
+        );
+        assert!(status.usable_libraries.is_empty());
+        assert!(status.libraries.is_none());
+        assert!(status.usable_libraries.is_empty());
+        assert!(status.usable_model_data_map.is_empty());
+        assert!(status.usable_model_data_map.is_empty());
+        assert!(status.usable_model_map.is_empty());
+        assert!(status.speaker_id_map.is_empty());
+        assert!(status.metas_str.to_str().unwrap() == "");
+        assert!(status.gaussian_session.is_none());
+    }
+
+    #[rstest]
+    fn supported_devices_get_supported_devices_works() {
+        let result = SupportedDevices::get_supported_devices();
+        // 環境によって結果が変わるので、関数呼び出しが成功するかどうかの確認のみ行う
+        assert!(result.is_ok(), "{:?}", result);
+    }
+
+    #[rstest]
+    fn status_load_model_works() {
+        let mut status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            false,
+            0,
+        );
+        let result = status.load();
+        assert_eq!(Ok(()), result);
+        let result = status.load_model("test");
+        assert_eq!(Ok(()), result);
+        let result = status.load_model("gaussian_test");
+        assert_eq!(Ok(()), result);
+        let test_model = status.usable_model_map.get("test");
+        let gaussian_test_model = status.usable_model_map.get("gaussian_test");
+        let invalid_model = status.usable_model_map.get("invalid");
+        assert!(test_model.is_some());
+        assert!(gaussian_test_model.is_some());
+        assert!(invalid_model.is_none());
+    }
+
+    #[rstest]
+    fn status_is_model_loaded_works() {
+        let mut status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            false,
+            0,
+        );
+        let result = status.load();
+        assert_eq!(Ok(()), result);
+        let library_uuid = "test";
+        assert!(
+            !status.is_model_loaded(library_uuid),
+            "model should  not be loaded"
+        );
+        let result = status.load_model(library_uuid);
+        assert_eq!(Ok(()), result);
+        assert!(
+            status.is_model_loaded(library_uuid),
+            "model should be loaded"
+        );
+    }
+
+    #[rstest]
+    fn status_get_library_uuid_from_speaker_id_works() {
+        let mut status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            false,
+            0,
+        );
+        let result = status.load();
+        assert_eq!(Ok(()), result);
+        let result = status.get_library_uuid_from_speaker_id(0);
+        assert!(result.is_some());
+        assert!(result.unwrap() == "test");
+        let result = status.get_library_uuid_from_speaker_id(1);
+        assert!(result.is_some());
+        assert!(result.unwrap() == "gaussian_test");
+        let result = status.get_library_uuid_from_speaker_id(100);
+        assert!(result.is_none());
+    }
+
+    #[rstest]
+    fn status_length_regulator_works() {
+        let mut status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            false,
+            0,
+        );
+        let mut embedded_vector = vec![0.; 192];
+        embedded_vector.append(&mut vec![1.; 192]);
+        // round(0.11 * 93.75) = 10, round(0.21 * 93.75) = 20
+        let durations = vec![0.11, 0.21];
+        let result = status.length_regulator(2, &embedded_vector, &durations);
+        let mut expected = vec![0.; 192 * 10 * 2];
+        assert_eq!(result.len(), 192 * 30 * 2);
+        expected.append(&mut vec![1.; 192 * 20 * 2]);
+        assert_eq!(result, expected);
+    }
+
+    #[rstest]
+    fn status_gaussian_upsampling_works() {
+        let mut status = Status::new(
+            Path::new(concat!(env!("CARGO_WORKSPACE_DIR"), "/model/")),
+            false,
+            0,
+        );
+        let result = status.load();
+        assert_eq!(Ok(()), result);
+        let mut embedded_vector = vec![0.; 192];
+        embedded_vector.append(&mut vec![1.; 192]);
+        // round(0.11 * 93.75) = 10, round(0.21 * 93.75) = 20
+        let durations = vec![0.11, 0.21];
+        let result = status.gaussian_upsampling(2, &embedded_vector, &durations);
+        assert_eq!(result.len(), 192 * 30 * 2);
+    }
+}
