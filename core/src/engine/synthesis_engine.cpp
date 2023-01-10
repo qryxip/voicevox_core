@@ -388,6 +388,7 @@ std::vector<float> SynthesisEngine::synthesis(AudioQueryModel query, int64_t *sp
   float mean_pitch = 0.0;
   int count = 0;
 
+  // VOICEVOXと最終的な音の長さを合わせるために、丸め誤差などを考慮して若干特殊な処理をしている
   int64_t wave_size = 0;
   for (MoraModel mora : flatten_moras) {
     float pitch = mora.pitch * std::pow(2.0f, pitch_scale);
@@ -401,7 +402,7 @@ std::vector<float> SynthesisEngine::synthesis(AudioQueryModel query, int64_t *sp
     if (mora.consonant) {
       float consonant_length = static_cast<float>(*mora.consonant_length);
       durations.push_back(consonant_length);
-      wave_size += (int64_t)(consonant_length * (float)default_sampling_rate);
+      wave_size += (int64_t)std::nearbyint(consonant_length * 93.75f); // 48000 / 512 = 93.75
       pitches.push_back(pitch);
       voiced.push_back(big_than_zero);
       if (big_than_zero) {
@@ -411,9 +412,10 @@ std::vector<float> SynthesisEngine::synthesis(AudioQueryModel query, int64_t *sp
     }
     float vowel_length = mora.vowel_length;
     durations.push_back(vowel_length);
-    wave_size += (int64_t)(vowel_length * (float)default_sampling_rate);
+    wave_size += (int64_t)(vowel_length * 93.75f); // 48000 / 512 = 93.75
   }
   mean_pitch /= (float)count;
+  wave_size *= 512;
 
   if (!std::isnan(mean_pitch)) {
     for (size_t i = 0; i < pitches.size(); i++) {
