@@ -2,7 +2,7 @@
 *.dylib
 *.so
 *.so.*
-vocevox_core.h
+sharevox_core.h
 
 
 # OpenJTalk-dictionary's dir
@@ -10,4 +10,4 @@ open_jtalk_dic_utf_8-*
 
 # executable
 simple_tts
-voicevox_core/
+sharevox_core/
