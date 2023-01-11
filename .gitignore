@@ -13,7 +13,6 @@ directml*/
 
 # Build artifacts
 build/
-test_build/
 lib/
 bin/
 core/_core.cpp
@@ -24,6 +23,11 @@ core/_core.cpp
 # Python
 __pycache__/
 *.egg-info
+
+# Maturin
+*.abi3.dll
+*.abi3.dylib
+*.abi3.so
 
 # CMake
 CMakeFiles/
@@ -38,3 +42,6 @@ release/
 # Visual Studio
 .vs/
 packages/
+
+# Cargo
+target

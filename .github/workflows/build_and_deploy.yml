@@ -1,0 +1,198 @@
+name: build and deploy workflow
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "バージョン情報（A.BB.C / A.BB.C-preview.D）"
+        required: true
+      code_signing:
+        description: "コード署名する"
+        type: boolean
+        required: false
+  release:
+    types:
+      - published
+  pull_request:
+  push:
+    branches:
+      - "*"
+      - "**/*"
+env:
+  # releaseタグ名か、workflow_dispatchでのバージョン名か、DEBUGが入る
+  VERSION: ${{ github.event.release.tag_name || github.event.inputs.version || 'DEBUG' }}
+
+  # Raw character weights are not public.
+  # Skip uploading to GitHub Release on public repo.
+  SKIP_UPLOADING_RELEASE_ASSET: ${{ secrets.SKIP_UPLOADING_RELEASE_ASSET || '1' }}
+jobs:
+  build_and_deploy:
+    environment: ${{ github.event.inputs.code_signing == 'true' && 'code_signing' || '' }} # コード署名用のenvironment
+    strategy:
+      matrix:
+        include:
+          - os: windows-2019
+            features: ""
+            target: x86_64-pc-windows-msvc
+            artifact_name: windows-x64-cpu
+            whl_local_version: cpu
+            use_cuda: false
+          - os: windows-2019
+            features: directml
+            target: x86_64-pc-windows-msvc
+            artifact_name: windows-x64-directml
+            whl_local_version: directml
+            use_cuda: false
+          - os: windows-2019
+            features: ""
+            target: x86_64-pc-windows-msvc
+            artifact_name: windows-x64-cuda
+            whl_local_version: cuda
+            use_cuda: true
+          - os: windows-2019
+            features: ""
+            target: i686-pc-windows-msvc
+            artifact_name: windows-x86-cpu
+            whl_local_version: cpu
+            use_cuda: false
+          - os: ubuntu-20.04
+            features: ""
+            target: x86_64-unknown-linux-gnu
+            artifact_name: linux-x64-cpu
+            whl_local_version: cpu
+            use_cuda: false
+          - os: ubuntu-20.04
+            features: ""
+            target: x86_64-unknown-linux-gnu
+            artifact_name: linux-x64-gpu
+            whl_local_version: cuda
+            use_cuda: true
+          - os: ubuntu-20.04
+            features: ""
+            target: aarch64-unknown-linux-gnu
+            artifact_name: linux-arm64-cpu
+            whl_local_version: cpu
+            use_cuda: false
+          - os: macos-11
+            features: ""
+            target: aarch64-apple-darwin
+            artifact_name: osx-aarch64-cpu
+            whl_local_version: cpu
+            use_cuda: false
+          - os: macos-11
+            features: ""
+            target: x86_64-apple-darwin
+            artifact_name: osx-x64-cpu
+            whl_local_version: cpu
+            use_cuda: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+          architecture: ${{ contains(matrix.artifact_name,'x86') && 'x86' || 'x64' }}
+      - name: set up ${{ matrix.target }}
+        uses: ./.github/actions/rust-toolchain-from-file
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install cross compiler for aarch64-unknown-linux-gnu
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - name: Install cargo-binstall
+        uses: taiki-e/install-action@cargo-binstall
+      - name: Install cbindgen
+        uses: ./.github/actions/cargo-binstall-cbindgen
+      - name: Install cargo-edit
+        if: ${{ env.VERSION != 'DEBUG' }}
+        shell: bash
+        run: cargo binstall cargo-edit@^0.11 --no-confirm --log-level debug
+      - name: set cargo version
+        if: ${{ env.VERSION != 'DEBUG' }}
+        shell: bash
+        run: |
+          cargo set-version "$VERSION" --exclude sharevox_core_python_api --exclude xtask
+          cargo set-version "$VERSION+"${{ matrix.whl_local_version }} -p sharevox_core_python_api
+      - name: generate sharevox_core.h
+        shell: bash
+        run: cbindgen --crate sharevox_core_c_api -o ./sharevox_core.h
+      - name: build sharevox_core_c_api
+        run: cargo build -p sharevox_core_c_api -vv --features ${{ matrix.features }}, --target ${{ matrix.target }} --release
+        env:
+          ORT_USE_CUDA: ${{ matrix.use_cuda }}
+      - name: build sharevox_core_python_api
+        id: build-sharevox-core-python-api
+        shell: bash
+        run: |
+          pip install -r ./crates/voicevox_core_python_api/requirements.txt
+          maturin build --manifest-path ./crates/voicevox_core_python_api/Cargo.toml --features ${{ matrix.features }}, --target ${{ matrix.target }} --release
+          echo "whl=$(find ./target/wheels -type f)" >> "$GITHUB_OUTPUT"
+        env:
+          ORT_USE_CUDA: ${{ matrix.use_cuda }}
+      - name: Set ASSET_NAME env var
+        shell: bash
+        run: echo "ASSET_NAME=sharevox_core-${{ matrix.artifact_name }}-${{ env.VERSION }}" >> "$GITHUB_ENV"
+      - name: Organize artifact
+        shell: bash
+        run: |
+          mkdir -p "artifact/${{ env.ASSET_NAME }}"
+          cp -v sharevox_core.h "artifact/${{ env.ASSET_NAME }}"
+          cp -v target/${{ matrix.target }}/release/*sharevox_core.{dll,so,dylib} "artifact/${{ env.ASSET_NAME }}" || true
+          cp -v target/${{ matrix.target }}/release/sharevox_core.dll.lib "artifact/${{ env.ASSET_NAME }}/sharevox_core.lib" || true
+          cp -v -n target/${{ matrix.target }}/release/build/onnxruntime-sys-*/out/onnxruntime_*/onnxruntime-*/lib/*.{dll,so.*,so,dylib} "artifact/${{ env.ASSET_NAME }}" || true
+          # libonnxruntimeについてはバージョン付のshared libraryを使用するためバージョンがついてないものを削除する
+          rm -f artifact/${{ env.ASSET_NAME }}/libonnxruntime.{so,dylib}
+          cp -v README.md "artifact/${{ env.ASSET_NAME }}/README.txt"
+          echo "${{ env.VERSION }}" > "artifact/${{ env.ASSET_NAME }}/VERSION"
+      - name: Code signing (Windows)
+        if: startsWith(matrix.os, 'windows') && github.event.inputs.code_signing == 'true'
+        shell: bash
+        run: |
+          bash build_util/codesign.bash "artifact/${{ env.ASSET_NAME }}/sharevox_core.dll"
+        env:
+          CERT_BASE64: ${{ secrets.CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+      - name: Archive artifact
+        shell: bash
+        if: (!contains(matrix.os , 'windows'))
+        run: |
+          cd artifact
+          zip -r "../${{ env.ASSET_NAME }}.zip" "${{ env.ASSET_NAME }}"
+      - name: Archive artifact (Windows)
+        if: contains(matrix.os, 'windows')
+        run: |
+          powershell Compress-Archive -Path "artifact/${{ env.ASSET_NAME }}" -DestinationPath "${{ env.ASSET_NAME }}.zip"
+      - name: Upload to Release
+        if: env.VERSION != 'DEBUG' && env.SKIP_UPLOADING_RELEASE_ASSET == '0'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.VERSION }}
+          files: |-
+            ${{ env.ASSET_NAME }}.zip
+          target_commitish: ${{ github.sha }}
+      - name: Upload Python whl to Release
+        if: env.VERSION != 'DEBUG' && env.SKIP_UPLOADING_RELEASE_ASSET == '0'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.VERSION }}
+          files: |-
+            ${{ steps.build-sharevox-core-python-api.outputs.whl }}
+          target_commitish: ${{ github.sha }}
+  deploy_downloader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Upload to Release
+        if: env.VERSION != 'DEBUG' && env.SKIP_UPLOADING_RELEASE_ASSET == '0'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.VERSION }}
+          files: |-
+            scripts/downloads/*
+          target_commitish: ${{ github.sha }}
