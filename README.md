@@ -73,7 +73,7 @@ macOS の場合、CUDA の macOS サポートは現在終了しているため�
 <!--
 #### Raspberry Piでの使用について
 
-Raspberry PiなどのarmhアーキテクチャPCでの使用では、環境構築時に https://github.com/VOICEVOX/onnxruntime-builder/releases にある独自ビルドのonnxruntimeを使用する必要があります。
+Raspberry PiなどのarmhアーキテクチャPCでの使用では、環境構築時に https://github.com/VOICEVOX/onnxruntime-builder/releases にあるVOICEVOX公式によるビルドのonnxruntimeを使用する必要があります。
 そのため、環境にあったファイルのURLを取得し、上記例の代わりに
 ```bash
 python configure.py --ort_download_link <独自ビルドonnxruntimeのURL>
