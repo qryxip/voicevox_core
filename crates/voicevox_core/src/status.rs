@@ -1,4 +1,5 @@
 use super::*;
+// use anyhow::Context as _;
 use numerics::F32Ext as _;
 use once_cell::sync::Lazy;
 use onnxruntime::{
@@ -8,6 +9,13 @@ use onnxruntime::{
     GraphOptimizationLevel, LoggingLevel,
 };
 use serde::{Deserialize, Serialize};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
+use tracing::error;
+
+mod model_file;
 
 cfg_if! {
     if #[cfg(not(feature="directml"))]{
@@ -16,7 +24,6 @@ cfg_if! {
 }
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::CString;
-use std::path::{Path, PathBuf};
 
 pub struct Status {
     root_dir_path: PathBuf,
@@ -31,6 +38,20 @@ pub struct Status {
     gaussian_session: Option<Session<'static>>,
 }
 
+#[allow(dead_code)]
+struct ModelFileNames {
+    #[allow(dead_code)]
+    predict_duration_model: &'static str,
+    #[allow(dead_code)]
+    predict_intonation_model: &'static str,
+    #[allow(dead_code)]
+    decode_model: &'static str,
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("不正なモデルファイルです")]
+struct DecryptModelError;
+
 pub struct Models {
     variance_session: Session<'static>,
     embedder_session: Session<'static>,
@@ -44,11 +65,18 @@ struct SessionOptions {
     use_gpu: bool,
 }
 
+
 struct ModelData {
     variance_model: Vec<u8>,
     embedder_model: Vec<u8>,
     decoder_model: Vec<u8>,
     model_config: ModelConfig,
+}
+
+#[allow(dead_code)]
+struct ModelFile {
+    path: PathBuf,
+    content: Vec<u8>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Getters)]
@@ -154,7 +182,10 @@ fn open_model_files(root_dir_path: &Path, library_uuid: &str) -> Result<ModelDat
     fn open_model_file(path: &Path) -> Result<Vec<u8>> {
         fs_err::read(path)
             .map_err(Into::into)
-            .map_err(Error::LoadModel)
+            .map_err(|source| Error::LoadModel {
+                path: path.to_path_buf(),
+                source,
+            })
     }
 }
 
@@ -203,8 +234,11 @@ impl Status {
             .collect();
 
         self.gaussian_session = Some(
-            self.new_session(Self::GAUSSIAN_MODEL, &self.light_session_options)
-                .map_err(Error::LoadModel)?,
+            self.new_session_from_bytes(|| model_file::decrypt(Self::GAUSSIAN_MODEL), &self.light_session_options)
+                .map_err(|source| Error::LoadModel {
+                    path: PathBuf::default(),
+                source,
+                })?,
         );
 
         let mut all_metas: Vec<Meta> = Vec::new();
@@ -250,15 +284,28 @@ impl Status {
             .ok_or_else(|| Error::InvalidLibraryUuid {
                 library_uuid: library_uuid.to_owned(),
             })?;
+
+        let mut library_path = self.root_dir_path.clone();
+        library_path.push(library_uuid);
+
         let variance_session = self
-            .new_session(&model_data.variance_model, &self.light_session_options)
-            .map_err(Error::LoadModel)?;
+            .new_session_from_bytes(|| model_file::decrypt(&model_data.variance_model), &self.light_session_options)
+            .map_err(|source| Error::LoadModel {
+                path: library_path.to_owned(),
+                source,
+            })?;
         let embedder_session = self
-            .new_session(&model_data.embedder_model, &self.light_session_options)
-            .map_err(Error::LoadModel)?;
+            .new_session_from_bytes(|| model_file::decrypt(&model_data.embedder_model), &self.light_session_options)
+            .map_err(|source| Error::LoadModel {
+                path: library_path.to_owned(),
+                source,
+            })?;
         let decoder_session = self
-            .new_session(&model_data.decoder_model, &self.heavy_session_options)
-            .map_err(Error::LoadModel)?;
+            .new_session_from_bytes(|| model_file::decrypt(&model_data.decoder_model), &self.heavy_session_options)
+            .map_err(|source| Error::LoadModel {
+                path: library_path.to_owned(),
+                source,
+            })?;
 
         self.usable_model_map.insert(
             library_uuid.to_string(),
@@ -276,9 +323,22 @@ impl Status {
         self.usable_model_map.contains_key(library_uuid)
     }
 
-    fn new_session<B: AsRef<[u8]>>(
+    #[allow(dead_code)]
+    fn new_session(
         &self,
-        model_bytes: B,
+        model_file: &ModelFile,
+        session_options: &SessionOptions,
+    ) -> Result<Session<'static>> {
+        self.new_session_from_bytes(|| model_file::decrypt(&model_file.content), session_options)
+            .map_err(|source| Error::LoadModel {
+                path: model_file.path.clone(),
+                source,
+            })
+    }
+
+    fn new_session_from_bytes(
+        &self,
+        model_bytes: impl FnOnce() -> std::result::Result<Vec<u8>, DecryptModelError>,
         session_options: &SessionOptions,
     ) -> anyhow::Result<Session<'static>> {
         let session_builder = ENVIRONMENT
@@ -303,7 +363,7 @@ impl Status {
             session_builder
         };
 
-        Ok(session_builder.with_model_from_memory(model_bytes)?)
+        Ok(session_builder.with_model_from_memory(model_bytes()?)?)
     }
 
     pub fn variance_session_run(

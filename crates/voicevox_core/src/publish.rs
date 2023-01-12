@@ -13,9 +13,6 @@ use std::sync::Mutex;
 
 // const PHONEME_LENGTH_MINIMAL: f32 = 0.01;
 
-// static SPEAKER_ID_MAP: Lazy<BTreeMap<u32, (usize, u32)>> =
-//     Lazy::new(|| include!("include_speaker_id_map.rs").into_iter().collect());
-
 pub struct VoicevoxCore {
     synthesis_engine: SynthesisEngine,
     use_gpu: bool,
@@ -463,7 +460,7 @@ pub static SUPPORTED_DEVICES_CSTRING: Lazy<CString> =
     Lazy::new(|| CString::new(SUPPORTED_DEVICES.to_json().to_string()).unwrap());
 
 // fn get_model_index_and_speaker_id(speaker_id: u32) -> Option<(usize, u32)> {
-//     SPEAKER_ID_MAP.get(&speaker_id).copied()
+//     MODEL_FILE_SET.speaker_id_map.get(&speaker_id).copied()
 // }
 
 pub const fn error_result_to_message(result_code: SharevoxResultCode) -> &'static str {
@@ -473,9 +470,7 @@ pub const fn error_result_to_message(result_code: SharevoxResultCode) -> &'stati
         SHAREVOX_RESULT_NOT_LOADED_OPENJTALK_DICT_ERROR => {
             "OpenJTalkの辞書が読み込まれていません\0"
         }
-        SHAREVOX_RESULT_LOAD_MODEL_ERROR => {
-            "modelデータ読み込み中にOnnxruntimeエラーが発生しました\0"
-        }
+        SHAREVOX_RESULT_LOAD_MODEL_ERROR => "modelデータ読み込みに失敗しました\0",
         SHAREVOX_RESULT_LOAD_METAS_ERROR => "メタデータ読み込みに失敗しました\0",
 
         SHAREVOX_RESULT_GPU_SUPPORT_ERROR => "GPU機能をサポートすることができません\0",

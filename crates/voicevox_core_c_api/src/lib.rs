@@ -429,7 +429,10 @@ mod tests {
         SharevoxResultCode::SHAREVOX_RESULT_NOT_LOADED_OPENJTALK_DICT_ERROR
     )]
     #[case(
-        Err(Error::LoadModel(anyhow!("some load model error"))),
+        Err(Error::LoadModel {
+            path: "path/to/model.onnx".into(),
+            source: anyhow!("some load model error"),
+        }),
         SharevoxResultCode::SHAREVOX_RESULT_LOAD_MODEL_ERROR
     )]
     #[case(

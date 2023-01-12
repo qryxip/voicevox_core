@@ -23,7 +23,7 @@ pub(crate) fn into_result_code_with_error(result: CApiResult<()>) -> SharevoxRes
             Ok(()) => SHAREVOX_RESULT_OK,
             Err(RustApi(NotLoadedOpenjtalkDict)) => SHAREVOX_RESULT_NOT_LOADED_OPENJTALK_DICT_ERROR,
             Err(RustApi(GpuSupport)) => SHAREVOX_RESULT_GPU_SUPPORT_ERROR,
-            Err(RustApi(LoadModel(_))) => SHAREVOX_RESULT_LOAD_MODEL_ERROR,
+            Err(RustApi(LoadModel { .. })) => SHAREVOX_RESULT_LOAD_MODEL_ERROR,
             Err(RustApi(LoadMetas(_))) => SHAREVOX_RESULT_LOAD_METAS_ERROR,
             Err(RustApi(GetSupportedDevices(_))) => SHAREVOX_RESULT_GET_SUPPORTED_DEVICES_ERROR,
             Err(RustApi(UninitializedStatus)) => SHAREVOX_RESULT_UNINITIALIZED_STATUS_ERROR,

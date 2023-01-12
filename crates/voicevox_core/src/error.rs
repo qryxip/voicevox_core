@@ -2,6 +2,7 @@ use self::engine::{FullContextLabelError, KanaParseError};
 use self::result_code::SharevoxResultCode::{self, *};
 use super::*;
 //use engine::
+use std::path::PathBuf;
 use thiserror::Error;
 
 /*
@@ -23,8 +24,12 @@ pub enum Error {
     #[error("{}", base_error_message(SHAREVOX_RESULT_GPU_SUPPORT_ERROR))]
     GpuSupport,
 
-    #[error("{},{0}", base_error_message(SHAREVOX_RESULT_LOAD_MODEL_ERROR))]
-    LoadModel(#[source] anyhow::Error),
+    #[error("{} ({}): {source}", base_error_message(SHAREVOX_RESULT_LOAD_MODEL_ERROR), path.display())]
+    LoadModel {
+        path: PathBuf,
+        #[source]
+        source: anyhow::Error,
+    },
 
     #[error("{},{0}", base_error_message(SHAREVOX_RESULT_LOAD_METAS_ERROR))]
     LoadMetas(#[source] anyhow::Error),
@@ -96,8 +101,17 @@ impl PartialEq for Error {
             | (Self::GpuSupport, Self::GpuSupport)
             | (Self::UninitializedStatus, Self::UninitializedStatus)
             | (Self::InferenceFailed, Self::InferenceFailed) => true,
-            (Self::LoadModel(e1), Self::LoadModel(e2))
-            | (Self::LoadMetas(e1), Self::LoadMetas(e2))
+            (
+                Self::LoadModel {
+                    path: path1,
+                    source: source1,
+                },
+                Self::LoadModel {
+                    path: path2,
+                    source: source2,
+                },
+            ) => (path1, source1.to_string()) == (path2, source2.to_string()),
+            (Self::LoadMetas(e1), Self::LoadMetas(e2))
             | (Self::GetSupportedDevices(e1), Self::GetSupportedDevices(e2))
             | (Self::LoadLibraries(e1), Self::LoadLibraries(e2)) => {
                 e1.to_string() == e2.to_string()
