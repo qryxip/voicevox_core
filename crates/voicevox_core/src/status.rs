@@ -65,7 +65,6 @@ struct SessionOptions {
     use_gpu: bool,
 }
 
-
 struct ModelData {
     variance_model: Vec<u8>,
     embedder_model: Vec<u8>,
@@ -234,11 +233,14 @@ impl Status {
             .collect();
 
         self.gaussian_session = Some(
-            self.new_session_from_bytes(|| model_file::decrypt(Self::GAUSSIAN_MODEL), &self.light_session_options)
-                .map_err(|source| Error::LoadModel {
-                    path: PathBuf::default(),
+            self.new_session_from_bytes(
+                || model_file::decrypt(Self::GAUSSIAN_MODEL),
+                &self.light_session_options,
+            )
+            .map_err(|source| Error::LoadModel {
+                path: PathBuf::default(),
                 source,
-                })?,
+            })?,
         );
 
         let mut all_metas: Vec<Meta> = Vec::new();
@@ -289,19 +291,28 @@ impl Status {
         library_path.push(library_uuid);
 
         let variance_session = self
-            .new_session_from_bytes(|| model_file::decrypt(&model_data.variance_model), &self.light_session_options)
+            .new_session_from_bytes(
+                || model_file::decrypt(&model_data.variance_model),
+                &self.light_session_options,
+            )
             .map_err(|source| Error::LoadModel {
                 path: library_path.to_owned(),
                 source,
             })?;
         let embedder_session = self
-            .new_session_from_bytes(|| model_file::decrypt(&model_data.embedder_model), &self.light_session_options)
+            .new_session_from_bytes(
+                || model_file::decrypt(&model_data.embedder_model),
+                &self.light_session_options,
+            )
             .map_err(|source| Error::LoadModel {
                 path: library_path.to_owned(),
                 source,
             })?;
         let decoder_session = self
-            .new_session_from_bytes(|| model_file::decrypt(&model_data.decoder_model), &self.heavy_session_options)
+            .new_session_from_bytes(
+                || model_file::decrypt(&model_data.decoder_model),
+                &self.heavy_session_options,
+            )
             .map_err(|source| Error::LoadModel {
                 path: library_path.to_owned(),
                 source,
