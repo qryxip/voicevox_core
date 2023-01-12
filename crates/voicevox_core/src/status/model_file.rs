@@ -4,9 +4,11 @@ pub(super) fn decrypt(content: &[u8]) -> std::result::Result<Vec<u8>, DecryptMod
     Ok(content.to_owned())
 }
 
+#[allow(dead_code)]
 pub(super) const SPEAKER_ID_MAP: &[(u32, (usize, u32))] =
     &[(0, (0, 0)), (1, (0, 1)), (2, (1, 0)), (3, (1, 1))];
 
+#[allow(dead_code)]
 pub(super) const MODEL_FILE_NAMES: &[ModelFileNames] = &[
     ModelFileNames {
         predict_duration_model: "predict_duration-0.onnx",
