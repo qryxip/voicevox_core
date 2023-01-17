@@ -9,7 +9,8 @@ def run(
     text: str,
     speaker_id: int,
     cpu_num_threads: int,
-    openjtalk_dict: str
+    openjtalk_dict: str,
+    output: str,
 ) -> None:
     # コアの初期化
     core.initialize(root_dir_path, use_gpu, cpu_num_threads, load_all_models=False)
@@ -27,7 +28,7 @@ def run(
     wavefmt = core.sharevox_synthesis(audio_query, speaker_id)
 
     # 保存
-    with open(f"{text}-{speaker_id}.wav", "wb") as f:
+    with open(output, "wb") as f:
         f.write(wavefmt)
 
     core.finalize()
@@ -40,5 +41,15 @@ if __name__ == "__main__":
     parser.add_argument("--text", required=True)
     parser.add_argument("--speaker_id", type=int, required=True)
     parser.add_argument("--cpu_num_threads", type=int, default=0)
-    parser.add_argument("--openjtalk_dict", type=str, default="sharevox_core/open_jtalk_dic_utf_8-1.11")
-    run(**vars(parser.parse_args()))
+    parser.add_argument(
+        "--openjtalk_dict",
+        type=str,
+        default="sharevox_core/open_jtalk_dic_utf_8-1.11"
+    )
+    parser.add_argument("--output", type=str)
+    
+    args = parser.parse_args()
+    if args.output is None:
+        args.output = f"{args.text}-{args.speaker_id}.wav"
+
+    run(**vars(args))
