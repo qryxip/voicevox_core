@@ -84,7 +84,7 @@ jobs:
             artifact_name: osx-x64-cpu
             whl_local_version: cpu
             use_cuda: false
-    runs-on: ${{ github.event.inputs.code_signing == 'true' && startsWith(matrix.os, 'windows') && 'windows-self-hosted' || matrix.os }}
+    runs-on: ${{ github.event.inputs.code_signing == 'true' && startsWith(matrix.os, 'windows') && 'self-hosted' || matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.8
@@ -120,6 +120,7 @@ jobs:
         shell: bash
         run: cbindgen --crate sharevox_core_c_api -o ./sharevox_core.h
       - name: build sharevox_core_c_api
+        shell: bash
         run: cargo build -p sharevox_core_c_api -vv --features ${{ matrix.features }}, --target ${{ matrix.target }} --release
         env:
           ORT_USE_CUDA: ${{ matrix.use_cuda }}
