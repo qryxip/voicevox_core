@@ -24,7 +24,7 @@ static INTERNAL: Lazy<Mutex<Internal>> = Lazy::new(|| {
         .with_env_filter(if env::var_os(EnvFilter::DEFAULT_ENV).is_some() {
             EnvFilter::from_default_env()
         } else {
-            "error,sharevox_core=info,sharevox_core_c_api=info,onnxruntime=info".into()
+            "error,voicevox_core=info,sharevox_core_c_api=info,onnxruntime=info".into()
         })
         .with_writer(io::stderr)
         .try_init();
