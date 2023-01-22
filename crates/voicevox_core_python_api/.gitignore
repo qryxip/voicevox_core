@@ -1,5 +1,5 @@
 # build.rs
-/python/voicevox_core/model/
+/python/sharevox_core/model/
 
 # Maturin
 *.abi3.dll
