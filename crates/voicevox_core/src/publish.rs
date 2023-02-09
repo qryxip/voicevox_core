@@ -535,9 +535,6 @@ pub const fn error_result_to_message(result_code: SharevoxResultCode) -> &'stati
         SHAREVOX_RESULT_LOAD_LIBRARIES_ERROR => "libraries.jsonの読み込みに失敗しました\0",
         SHAREVOX_RESULT_LOAD_MODEL_CONFIG_ERROR => "model_config.jsonの読み込みに失敗しました\0",
         SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR => "無効なlibrary_uuidです\0",
-        SHAREVOX_RESULT_INVALID_LENGTH_REGULATOR_ERROR => {
-            "model_config.jsonのlength_regulatorが無効です\0"
-        }
     }
 }
 
