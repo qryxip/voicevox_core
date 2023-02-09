@@ -334,19 +334,18 @@ impl InferenceCore {
             .as_mut()
             .ok_or(Error::UninitializedStatus)?;
 
-        let library_uuid =
-            if let Some(library_uuid) = status.get_library_uuid_from_speaker_id(speaker_id) {
-                library_uuid
-            } else {
-                return Err(Error::InvalidSpeakerId { speaker_id });
-            };
+        let library_uuid = status
+            .get_library_uuid_from_speaker_id(speaker_id)
+            .ok_or(Error::InvalidSpeakerId { speaker_id })?;
 
-        let start_speaker_id = if let Some(model_data) = status.usable_model_map.get(&library_uuid)
-        {
-            model_data.model_config.start_id as i64
-        } else {
-            return Err(Error::InvalidLibraryUuid { library_uuid });
-        };
+        let start_speaker_id = status
+            .usable_model_map
+            .get(&library_uuid)
+            .ok_or_else(|| Error::InvalidLibraryUuid {
+                library_uuid: library_uuid.clone(),
+            })?
+            .model_config
+            .start_id as i64;
         let model_speaker_id = speaker_id as i64 - start_speaker_id;
 
         let mut phoneme_vector_array = NdArray::new(
