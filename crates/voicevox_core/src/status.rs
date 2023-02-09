@@ -145,7 +145,16 @@ impl SupportedDevices {
 pub struct ModelConfig {
     pub length_regulator: String,
     pub start_id: usize,
-    pub synthesis_system: Option<String>,
+    #[serde(default)]
+    pub synthesis_system: SynthesisSystem,
+}
+
+#[derive(Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SynthesisSystem {
+    #[default]
+    V1,
+    V2,
 }
 
 fn open_metas(root_dir_path: &Path, library_uuid: &str) -> Result<Vec<Meta>> {

@@ -402,9 +402,7 @@ impl InferenceCore {
         let model_speaker_id = speaker_id as i64 - start_speaker_id;
 
         let length_regulator_type = &model_config.length_regulator;
-        let synthesis_system = model_config
-            .synthesis_system
-            .unwrap_or_else(|| "v1".to_string());
+        let synthesis_system = model_config.synthesis_system;
 
         let mut phoneme_vector_array = NdArray::new(
             ndarray::arr1(phoneme_vector)
@@ -413,31 +411,33 @@ impl InferenceCore {
         );
         let mut speaker_id_array = NdArray::new(ndarray::arr1(&[model_speaker_id]));
 
-        let embedder_input_tensors: Vec<&mut dyn AnyArray>;
         let mut pitch_vector_array;
-        if synthesis_system == "v1" {
-            pitch_vector_array = NdArray::new(
-                ndarray::arr1(pitch_vector)
-                    .into_shape([1, pitch_vector.len()])
-                    .unwrap(),
-            );
 
-            embedder_input_tensors = vec![
-                &mut phoneme_vector_array,
-                &mut pitch_vector_array,
-                &mut speaker_id_array,
-            ];
-        } else if synthesis_system == "v2" {
-            embedder_input_tensors = vec![&mut phoneme_vector_array];
-        } else {
-            return Err(Error::InvalidSynthesisSystem { synthesis_system });
-        }
+        let embedder_input_tensors: Vec<&mut dyn AnyArray> = match synthesis_system {
+            SynthesisSystem::V1 => {
+                pitch_vector_array = NdArray::new(
+                    ndarray::arr1(pitch_vector)
+                        .into_shape([1, pitch_vector.len()])
+                        .unwrap(),
+                );
+
+                vec![
+                    &mut phoneme_vector_array,
+                    &mut pitch_vector_array,
+                    &mut speaker_id_array,
+                ]
+            }
+            SynthesisSystem::V2 => vec![&mut phoneme_vector_array],
+        };
 
         let embedded_vector =
             &status.embedder_session_run(&library_uuid, embedder_input_tensors)?;
 
         let length_regulated_vector: Vec<f32>;
-        let upsample_rate = if synthesis_system == "v2" { 1 } else { 2 };
+        let upsample_rate = match synthesis_system {
+            SynthesisSystem::V1 => 2,
+            SynthesisSystem::V2 => 1,
+        };
         if length_regulator_type == "normal" {
             length_regulated_vector = status.length_regulator(
                 phoneme_vector.len(),
@@ -468,34 +468,34 @@ impl InferenceCore {
                 .unwrap(),
         );
         let mut length_regulated_pitch_vector_array;
-        let decoder_input_tensors: Vec<&mut dyn AnyArray>;
 
-        if synthesis_system == "v1" {
-            decoder_input_tensors = vec![&mut length_regulated_vector_array];
-        } else if synthesis_system == "v2" {
-            let length_regulated_pitch_vector = status.length_regulator(
-                phoneme_vector.len(),
-                pitch_vector,
-                duration_vector,
-                93.75, // 48000 / 512 = 93.75
-                1,
-                1,
-            );
+        let decoder_input_tensors: Vec<&mut dyn AnyArray> = match synthesis_system {
+            SynthesisSystem::V1 => {
+                vec![&mut length_regulated_vector_array]
+            }
+            SynthesisSystem::V2 => {
+                let length_regulated_pitch_vector = status.length_regulator(
+                    phoneme_vector.len(),
+                    pitch_vector,
+                    duration_vector,
+                    93.75, // 48000 / 512 = 93.75
+                    1,
+                    1,
+                );
 
-            length_regulated_pitch_vector_array = NdArray::new(
-                ndarray::arr1(length_regulated_pitch_vector.as_slice())
-                    .into_shape([1, new_length])
-                    .unwrap(),
-            );
+                length_regulated_pitch_vector_array = NdArray::new(
+                    ndarray::arr1(length_regulated_pitch_vector.as_slice())
+                        .into_shape([1, new_length])
+                        .unwrap(),
+                );
 
-            decoder_input_tensors = vec![
-                &mut length_regulated_vector_array,
-                &mut length_regulated_pitch_vector_array,
-                &mut speaker_id_array,
-            ];
-        } else {
-            return Err(Error::InvalidSynthesisSystem { synthesis_system });
-        }
+                vec![
+                    &mut length_regulated_vector_array,
+                    &mut length_regulated_pitch_vector_array,
+                    &mut speaker_id_array,
+                ]
+            }
+        };
 
         status.decoder_session_run(&library_uuid, decoder_input_tensors)
     }
@@ -544,9 +544,6 @@ pub const fn error_result_to_message(result_code: SharevoxResultCode) -> &'stati
         SHAREVOX_RESULT_INVALID_LIBRARY_UUID_ERROR => "無効なlibrary_uuidです\0",
         SHAREVOX_RESULT_INVALID_LENGTH_REGULATOR_ERROR => {
             "model_config.jsonのlength_regulatorが無効です\0"
-        }
-        SHAREVOX_RESULT_INVALID_SYNTHESIS_SYSTEM_ERROR => {
-            "model_config.jsonのsynthesis_systemが無効です\0"
         }
     }
 }
