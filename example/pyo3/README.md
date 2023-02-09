@@ -1,6 +1,7 @@
 # Python サンプルコード (PyO3 によるバインディング経由)
 
-sharevox_core ライブラリ の Python バインディングを使った音声合成のサンプルコードです。
+sharevox_core ライブラリ の Python バインディングを使った音声合成のサンプルコードです。  
+`pip install`で導入することができます。
 
 ## 準備
 
