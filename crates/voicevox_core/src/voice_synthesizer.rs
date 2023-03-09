@@ -352,7 +352,10 @@ mod tests {
     async fn load_model_works(#[case] expected_result_at_initialized: Result<()>) {
         let mut syntesizer = VoiceSynthesizer::new_with_initialize(
             Arc::new(OpenJtalk::new_without_dic()),
-            &InitializeOptions::default(),
+            &InitializeOptions {
+                acceleration_mode: AccelerationMode::Cpu,
+                ..Default::default()
+            },
         )
         .await
         .unwrap();
