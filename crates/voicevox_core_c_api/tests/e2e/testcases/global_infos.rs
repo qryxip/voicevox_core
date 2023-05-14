@@ -1,5 +1,3 @@
-// initialize前にモデルを読み込むとエラーになるテスト
-
 use std::ffi::CStr;
 
 use assert_cmd::assert::AssertResult;
@@ -18,20 +16,24 @@ case!(TestCase);
 #[derive(Serialize, Deserialize)]
 struct TestCase;
 
-#[typetag::serde(name = "compatible_engine_load_model_before_initialize")]
+#[typetag::serde(name = "global_infos")]
 impl assert_cdylib::TestCase for TestCase {
     unsafe fn exec(&self, lib: &Library) -> anyhow::Result<()> {
         let Symbols {
-            load_model,
-            last_error_message,
+            voicevox_get_version,
+            voicevox_get_supported_devices_json,
             ..
         } = Symbols::new(lib)?;
 
-        assert!(!load_model(0));
-        let last_error_message = last_error_message();
-        let last_error_message = CStr::from_ptr(last_error_message).to_str()?;
+        let expected = voicevox_core::get_version();
+        let actual = CStr::from_ptr(voicevox_get_version()).to_str()?;
+        std::assert_eq!(expected, actual);
 
-        std::assert_eq!(SNAPSHOTS.last_error_message, last_error_message);
+        let expected = voicevox_core::SupportedDevices::get_supported_devices()?;
+        let actual = CStr::from_ptr(voicevox_get_supported_devices_json()).to_str()?;
+        let actual = serde_json::from_str::<voicevox_core::SupportedDevices>(actual)?;
+        std::assert_eq!(expected, actual);
+
         Ok(())
     }
 
@@ -44,11 +46,9 @@ impl assert_cdylib::TestCase for TestCase {
     }
 }
 
-static SNAPSHOTS: Lazy<Snapshots> =
-    snapshots::section!(compatible_engine_load_model_before_initialize);
+static SNAPSHOTS: Lazy<Snapshots> = snapshots::section!(global_infos);
 
 #[derive(Deserialize)]
 struct Snapshots {
-    last_error_message: String,
     stderr: String,
 }

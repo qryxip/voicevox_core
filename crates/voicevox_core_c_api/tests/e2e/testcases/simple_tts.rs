@@ -2,6 +2,8 @@ use std::{
     collections::HashMap,
     ffi::{CStr, CString},
     mem::MaybeUninit,
+    slice,
+    sync::Arc,
 };
 
 use assert_cmd::assert::AssertResult;
@@ -9,7 +11,8 @@ use libloading::Library;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use test_util::OPEN_JTALK_DIC_DIR;
-use voicevox_core::result_code::VoicevoxResultCode;
+use tokio::runtime::Runtime;
+use voicevox_core::{result_code::VoicevoxResultCode, StyleId};
 
 use crate::{
     assert_cdylib::{self, case, Utf8Output},
@@ -49,6 +52,28 @@ impl assert_cdylib::TestCase for TestCase {
             voicevox_wav_free,
             ..
         } = Symbols::new(lib)?;
+
+        let expected_wav = &RUNTIME.block_on(async {
+            let model = &voicevox_core::VoiceModel::from_path("../../model/sample.vvm").await?;
+
+            let openjtalk = Arc::new(voicevox_core::OpenJtalk::new_with_initialize(
+                OPEN_JTALK_DIC_DIR,
+            )?);
+
+            let mut synthesizer = voicevox_core::Synthesizer::new_with_initialize(
+                openjtalk,
+                &voicevox_core::InitializeOptions {
+                    acceleration_mode: voicevox_core::AccelerationMode::Cpu,
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+            synthesizer.load_voice_model(model).await?;
+            synthesizer
+                .tts(&self.text, StyleId::new(STYLE_ID), &Default::default())
+                .await
+        })?;
 
         let model = {
             let mut model = MaybeUninit::uninit();
@@ -100,6 +125,10 @@ impl assert_cdylib::TestCase for TestCase {
         };
 
         std::assert_eq!(SNAPSHOTS.output[&self.text].wav_length, wav_length);
+        {
+            let actual_wav = slice::from_raw_parts(wav, wav_length);
+            std::assert_eq!(expected_wav, actual_wav);
+        }
 
         voicevox_voice_model_delete(model);
         voicevox_open_jtalk_rc_delete(openjtalk);
@@ -109,6 +138,8 @@ impl assert_cdylib::TestCase for TestCase {
         return Ok(());
 
         const STYLE_ID: u32 = 0;
+
+        static RUNTIME: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());
 
         fn assert_ok(result_code: VoicevoxResultCode) {
             std::assert_eq!(VoicevoxResultCode::VOICEVOX_RESULT_OK, result_code);

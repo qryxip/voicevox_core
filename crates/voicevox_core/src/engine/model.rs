@@ -19,6 +19,7 @@ pub struct AccentPhraseModel {
     moras: Vec<MoraModel>,
     accent: usize,
     pause_mora: Option<MoraModel>,
+    #[serde(default)]
     is_interrogative: bool,
 }
 

@@ -4,7 +4,6 @@ use libloading::{Library, Symbol};
 use voicevox_core::result_code::VoicevoxResultCode;
 
 /// voicevox\_core\_c\_apiのcdylibのシンボルを集めたもの。
-#[allow(dead_code)] // TODO: WIP
 pub(crate) struct Symbols<'lib> {
     pub(crate) voicevox_open_jtalk_rc_new: Symbol<
         'lib,

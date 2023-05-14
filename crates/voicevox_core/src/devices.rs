@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::*;
 
-#[derive(Getters, Debug, Serialize, Deserialize)]
+#[derive(Getters, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SupportedDevices {
     cpu: bool,
     cuda: bool,
