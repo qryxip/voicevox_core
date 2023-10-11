@@ -15,8 +15,8 @@ tokio.workspace = true
 anyhow.workspace = true
 async-std = { version = "1.12.0", features = ["attributes"] }
 fs-err.workspace = true
-flate2 = "1.0.24"
+flate2 = "1.0.27"
 serde.workspace = true
 serde_json.workspace = true
 surf = "2.3.2"
-tar = "0.4.38"
+tar = "0.4.40"
