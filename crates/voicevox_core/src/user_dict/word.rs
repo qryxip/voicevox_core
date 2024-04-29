@@ -73,7 +73,7 @@ pub(crate) enum InvalidWordError {
 }
 
 impl InvalidWordError {
-    const BASE_MSG: &str = "ユーザー辞書の単語のバリデーションに失敗しました";
+    const BASE_MSG: &'static str = "ユーザー辞書の単語のバリデーションに失敗しました";
 }
 
 type InvalidWordResult<T> = std::result::Result<T, InvalidWordError>;
@@ -219,10 +219,10 @@ pub enum UserDictWordType {
 }
 
 impl UserDictWord {
-    pub fn to_mecab_format(&self) -> String {
+    pub(super) fn to_mecab_format(&self) -> String {
         let pos = PART_OF_SPEECH_DETAIL.get(&self.word_type).unwrap();
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}/{},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}/{},{}",
             self.surface,
             pos.context_id,
             pos.context_id,
@@ -245,8 +245,9 @@ impl UserDictWord {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
+
+    use super::{InvalidWordError, UserDictWord, UserDictWordType};
 
     #[rstest]
     #[case("abcdefg", "ａｂｃｄｅｆｇ")]
@@ -254,7 +255,7 @@ mod tests {
     #[case("a_b_c_d_e_f_g", "ａ＿ｂ＿ｃ＿ｄ＿ｅ＿ｆ＿ｇ")]
     #[case("a b c d e f g", "ａ　ｂ　ｃ　ｄ　ｅ　ｆ　ｇ")]
     fn to_zenkaku_works(#[case] before: &str, #[case] after: &str) {
-        assert_eq!(to_zenkaku(before), after);
+        assert_eq!(super::to_zenkaku(before), after);
     }
 
     #[rstest]
@@ -270,7 +271,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             word.to_mecab_format(),
-            "単語,1348,1348,8609,名詞,固有名詞,一般,*,*,*,*,ヨミ,ヨミ,0/2,*\n"
+            "単語,1348,1348,8609,名詞,固有名詞,一般,*,*,*,*,ヨミ,ヨミ,0/2,*"
         );
     }
 
@@ -285,7 +286,7 @@ mod tests {
         #[case] pronunciation: &str,
         #[case] expected_error_message: Option<&str>,
     ) {
-        let result = validate_pronunciation(pronunciation);
+        let result = super::validate_pronunciation(pronunciation);
 
         if let Some(expected_error_message) = expected_error_message {
             match result {

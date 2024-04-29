@@ -1,29 +1,30 @@
-use std::{ffi::CString, path::Path, sync::Arc};
+use std::{ffi::CString, path::Path};
 
-use voicevox_core::{InitializeOptions, OpenJtalk, Result, Synthesizer, VoiceModel, VoiceModelId};
+use camino::Utf8Path;
+use voicevox_core::{InitializeOptions, Result, VoiceModelId};
 
-use crate::{CApiResult, OpenJtalkRc, VoicevoxSynthesizer, VoicevoxVoiceModel};
+use crate::{helpers::CApiResult, OpenJtalkRc, VoicevoxSynthesizer, VoicevoxVoiceModel};
 
 impl OpenJtalkRc {
-    pub(crate) fn new_with_initialize(open_jtalk_dic_dir: impl AsRef<Path>) -> Result<Self> {
+    pub(crate) fn new(open_jtalk_dic_dir: impl AsRef<Utf8Path>) -> Result<Self> {
         Ok(Self {
-            open_jtalk: Arc::new(OpenJtalk::new_with_initialize(open_jtalk_dic_dir)?),
+            open_jtalk: voicevox_core::blocking::OpenJtalk::new(open_jtalk_dic_dir)?,
         })
     }
 }
 
 impl VoicevoxSynthesizer {
-    pub(crate) async fn new_with_initialize(
-        open_jtalk: &OpenJtalkRc,
-        options: &InitializeOptions,
-    ) -> Result<Self> {
+    pub(crate) fn new(open_jtalk: &OpenJtalkRc, options: &InitializeOptions) -> Result<Self> {
         let synthesizer =
-            Synthesizer::new_with_initialize(open_jtalk.open_jtalk.clone(), options).await?;
+            voicevox_core::blocking::Synthesizer::new(open_jtalk.open_jtalk.clone(), options)?;
         Ok(Self { synthesizer })
     }
 
-    pub(crate) async fn load_voice_model(&self, model: &VoiceModel) -> CApiResult<()> {
-        self.synthesizer.load_voice_model(model).await?;
+    pub(crate) fn load_voice_model(
+        &self,
+        model: &voicevox_core::blocking::VoiceModel,
+    ) -> CApiResult<()> {
+        self.synthesizer.load_voice_model(model)?;
         Ok(())
     }
 
@@ -39,8 +40,8 @@ impl VoicevoxSynthesizer {
 }
 
 impl VoicevoxVoiceModel {
-    pub(crate) async fn from_path(path: impl AsRef<Path>) -> Result<Self> {
-        let model = VoiceModel::from_path(path).await?;
+    pub(crate) fn from_path(path: impl AsRef<Path>) -> Result<Self> {
+        let model = voicevox_core::blocking::VoiceModel::from_path(path)?;
         let id = CString::new(model.id().raw_voice_model_id().as_str()).unwrap();
         let metas = CString::new(serde_json::to_string(model.metas()).unwrap()).unwrap();
         Ok(Self { model, id, metas })

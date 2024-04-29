@@ -7,14 +7,16 @@ on:
         description: "テスト対象のコアのバージョン。無指定時はprerelease込みの最新release。"
         type: string
         required: false
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "Cargo.*"
-      - "crates/download/**"
-      - ".github/workflows/download_test.yml"
+  # 新しいビルドができるまで、このworkflowが壊れて動かないことを許容する
+  # https://github.com/VOICEVOX/voicevox_core/issues/741#issuecomment-1935303742
+  #push:
+  #  branches:
+  #    - main
+  #pull_request:
+  #  paths:
+  #    - "Cargo.*"
+  #    - "crates/downloader/**"
+  #    - ".github/workflows/download_test.yml"
 
 env:
   VERSION: ${{ inputs.version || 'prerelease-latest' }}
@@ -31,7 +33,7 @@ jobs:
         include:
           - name: 通常ダウンロード
             os: windows-latest
-            download_command: cargo run -vv -p download -- # バージョン指定のために -- が必要
+            download_command: cargo run -vv -p downloader -- # バージョン指定のために -- が必要
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
@@ -49,7 +51,7 @@ jobs:
               *curand*
           - name: CpuArch指定
             os: windows-latest
-            download_command: cargo run -vv -p download -- --cpu-arch x86
+            download_command: cargo run -vv -p downloader -- --cpu-arch x86
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
@@ -66,7 +68,7 @@ jobs:
               *curand*
           - name: output先指定ダウンロード
             os: windows-latest
-            download_command: cargo run -vv -p download -- -o other_output
+            download_command: cargo run -vv -p downloader -- -o other_output
             download_dir: other_output
             check_items: |
               voicevox_core.dll
@@ -83,11 +85,10 @@ jobs:
               *curand*
           - name: Min option確認
             os: windows-latest
-            download_command: cargo run -vv -p download -- --min
+            download_command: cargo run -vv -p downloader -- --min
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
-              model/README.*
               README.txt
             check_not_exists_items: |
               *directml*
@@ -97,10 +98,11 @@ jobs:
               *nvidia*
               *cufft*
               *curand*
+              model/README.*
               open_jtalk_dic_utf_8-1.11
           - name: DirectML option確認
             os: windows-latest
-            download_command: cargo run -vv -p download -- --device directml
+            download_command: cargo run -vv -p downloader -- --device directml
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
@@ -119,11 +121,10 @@ jobs:
               *curand*
           - name: DirectMLかつMin option確認
             os: windows-latest
-            download_command: cargo run -vv -p download -- --device directml --min
+            download_command: cargo run -vv -p downloader -- --device directml --min
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
-              model/README.*
               README.txt
             check_not_exists_items: |
               *cuda*
@@ -134,10 +135,11 @@ jobs:
               *curand*
               Directml.dll
               DirectML_LICENSE.txt
+              model/README.*
               open_jtalk_dic_utf_8-1.11
           - name: cuda option確認
             os: windows-latest
-            download_command: cargo run -vv -p download -- --device cuda
+            download_command: cargo run -vv -p downloader -- --device cuda
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
@@ -159,11 +161,10 @@ jobs:
               *directml*
           - name: cudaかつmin option確認
             os: windows-latest
-            download_command: cargo run -vv -p download -- --device cuda --min
+            download_command: cargo run -vv -p downloader -- --device cuda --min
             download_dir: voicevox_core
             check_items: |
               voicevox_core.dll
-              model/README.*
               README.txt
             check_not_exists_items: |
               *directml*
@@ -178,6 +179,7 @@ jobs:
               cudnn_ops_infer64_*.dll
               cufft64_*.dll
               curand64_*.dll
+              model/README.*
               open_jtalk_dic_utf_8-1.11
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}-${{ matrix.os }}
@@ -196,7 +198,7 @@ jobs:
           )
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Execute download command
-        run: ${{ matrix.download_command }} --version ${{ env.VERSION }}
+        run: ${{ matrix.download_command }} --version ${{ env.VERSION }} --core-repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check downloaded version

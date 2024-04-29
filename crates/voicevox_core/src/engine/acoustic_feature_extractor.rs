@@ -61,7 +61,7 @@ static PHONEME_MAP: Lazy<HashMap<&str, i64>> = Lazy::new(|| {
 });
 
 #[derive(Debug, Clone, PartialEq, new, Default, Getters)]
-pub struct OjtPhoneme {
+pub(crate) struct OjtPhoneme {
     phoneme: String,
     #[allow(dead_code)]
     start: f32,
@@ -70,15 +70,15 @@ pub struct OjtPhoneme {
 }
 
 impl OjtPhoneme {
-    pub fn num_phoneme() -> usize {
+    pub(crate) fn num_phoneme() -> usize {
         PHONEME_MAP.len()
     }
 
-    pub fn space_phoneme() -> String {
+    fn space_phoneme() -> String {
         "pau".into()
     }
 
-    pub fn phoneme_id(&self) -> i64 {
+    pub(crate) fn phoneme_id(&self) -> i64 {
         if self.phoneme.is_empty() {
             -1
         } else {
@@ -86,7 +86,7 @@ impl OjtPhoneme {
         }
     }
 
-    pub fn convert(phonemes: &[OjtPhoneme]) -> Vec<OjtPhoneme> {
+    pub(crate) fn convert(phonemes: &[OjtPhoneme]) -> Vec<OjtPhoneme> {
         let mut phonemes = phonemes.to_owned();
         if let Some(first_phoneme) = phonemes.first_mut() {
             if first_phoneme.phoneme.contains("sil") {
@@ -104,10 +104,10 @@ impl OjtPhoneme {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+    use rstest::rstest;
 
-    use crate::*;
+    use super::OjtPhoneme;
 
     const STR_HELLO_HIHO: &str = "sil k o N n i ch i w a pau h i h o d e s U sil";
 
@@ -130,7 +130,7 @@ mod tests {
     #[case(38, "ts")]
     #[case(41, "v")]
     fn test_phoneme_list(#[case] index: usize, #[case] phoneme_str: &str) {
-        assert_eq!(PHONEME_LIST[index], phoneme_str);
+        assert_eq!(super::PHONEME_LIST[index], phoneme_str);
     }
 
     #[rstest]

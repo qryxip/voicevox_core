@@ -151,7 +151,8 @@ jobs:
           metadata=$(cargo metadata --format-version 1)
           version=$(
               jq -r '
-                (.workspace_members[] | select(startswith("xtask "))) as $xtask
+                .workspace_members as $workspace_members
+                  | (.packages[] | select(.name == "xtask").id | select(. as $id | $workspace_members | index($id))) as $xtask
                   | (.resolve.nodes[] | select(.id == $xtask).deps[] | select(.name == "cbindgen").pkg) as $cbindgen
                   | .packages[] | select(.id == $cbindgen).version
                 ' <<< "$metadata"
@@ -260,6 +261,10 @@ jobs:
           - os: macos-latest
           - os: ubuntu-latest
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./crates/voicevox_core_python_api
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.8
@@ -268,21 +273,31 @@ jobs:
           python-version: "3.8"
       - name: Set up Rust
         uses: ./.github/actions/rust-toolchain-from-file
-      - name: venv作成
-        uses: ./.github/actions/create-venv
-      - run: pip install -r ./crates/voicevox_core_python_api/requirements.txt
-      - run: cargo build -p voicevox_core_c_api -vv
-      - run: maturin build --manifest-path ./crates/voicevox_core_python_api/Cargo.toml --locked
-      - run: maturin develop --manifest-path ./crates/voicevox_core_python_api/Cargo.toml --locked
+      - run: |
+          pip install --upgrade poetry
+          poetry install --with dev --with test
+      - run: cargo build -p test_util -vv # build scriptにより/crates/test_util/data/の生成
+      # `macos-latest`(=`macos-12`)で次の問題が発生するため、それに対するワークアラウンド
+      # https://github.com/VOICEVOX/voicevox_core/issues/653#issuecomment-1782108410
+      - if: startsWith(matrix.os, 'mac')
+        name: Build open_jtalk-sys
+        run: |
+          poetry run -- cargo build -p voicevox_core_python_api -vv || true
+          [ -n "$(find ../../target/debug/deps -name 'libopen_jtalk_sys-*.rlib')" ]
+      - run: poetry run maturin build --locked
+      - run: poetry run maturin develop --locked
       - name: 必要なDLLをコピーしてpytestを実行
-        working-directory: crates/voicevox_core_python_api
         run: |
           cp -v ../../target/debug/build/onnxruntime-sys-*/out/onnxruntime_*/onnxruntime-*/lib/onnxruntime.dll . || true
           cp -v ../../target/debug/build/onnxruntime-sys-*/out/onnxruntime_*/onnxruntime-*/lib/libonnxruntime.so.* . || true
           cp -v ../../target/debug/build/onnxruntime-sys-*/out/onnxruntime_*/onnxruntime-*/lib/libonnxruntime.*.dylib . || true
 
-          pip install -r requirements-test.txt
-          pytest
+          poetry run pytest
+      - name: Exampleを実行
+        run: |
+          for file in ../../example/python/run{,-asyncio}.py; do
+            poetry run python "$file" ../../model/sample.vvm --dict-dir ../test_util/data/open_jtalk_dic_utf_8-1.11
+          done
   build-and-test-java-api:
     strategy:
       fail-fast: false
@@ -304,7 +319,7 @@ jobs:
       - name: Build
         run: |
           cargo build -p voicevox_core_java_api -vv
-          cargo build -p test_util -vv
+          cargo build -p test_util -vv # build scriptにより/crates/test_util/data/の生成
       - name: 必要なDLLをコピーしてテストを実行
         working-directory: crates/voicevox_core_java_api
         run: |

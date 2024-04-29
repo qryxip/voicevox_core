@@ -1,4 +1,3 @@
-import asyncio
 import dataclasses
 import json
 import logging
@@ -7,16 +6,11 @@ from pathlib import Path
 from typing import Tuple
 
 import voicevox_core
-from voicevox_core import (
-    AccelerationMode,
-    AudioQuery,
-    OpenJtalk,
-    Synthesizer,
-    VoiceModel,
-)
+from voicevox_core import AccelerationMode, AudioQuery
+from voicevox_core.blocking import OpenJtalk, Synthesizer, VoiceModel
 
 
-async def main() -> None:
+def main() -> None:
     logging.basicConfig(format="[%(levelname)s] %(name)s: %(message)s")
     logger = logging.getLogger(__name__)
     logger.setLevel("DEBUG")
@@ -35,7 +29,7 @@ async def main() -> None:
     logger.debug("%s", f"{voicevox_core.supported_devices()=}")
 
     logger.info("%s", f"Initializing ({acceleration_mode=}, {open_jtalk_dict_dir=})")
-    synthesizer = await Synthesizer.new_with_initialize(
+    synthesizer = Synthesizer(
         OpenJtalk(open_jtalk_dict_dir), acceleration_mode=acceleration_mode
     )
 
@@ -43,14 +37,14 @@ async def main() -> None:
     logger.debug("%s", f"{synthesizer.is_gpu_mode=}")
 
     logger.info("%s", f"Loading `{vvm_path}`")
-    model = await VoiceModel.from_path(vvm_path)
-    await synthesizer.load_voice_model(model)
+    model = VoiceModel.from_path(vvm_path)
+    synthesizer.load_voice_model(model)
 
     logger.info("%s", f"Creating an AudioQuery from {text!r}")
-    audio_query = await synthesizer.audio_query(text, style_id)
+    audio_query = synthesizer.audio_query(text, style_id)
 
     logger.info("%s", f"Synthesizing with {display_as_json(audio_query)}")
-    wav = await synthesizer.synthesis(audio_query, style_id)
+    wav = synthesizer.synthesis(audio_query, style_id)
 
     out.write_bytes(wav)
     logger.info("%s", f"Wrote `{out}`")
@@ -101,4 +95,4 @@ def display_as_json(audio_query: AudioQuery) -> str:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

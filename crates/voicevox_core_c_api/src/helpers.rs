@@ -1,11 +1,15 @@
-use std::{error::Error as _, fmt::Debug, iter};
-use voicevox_core::UserDictWord;
+use std::{error::Error as _, ffi::CStr, fmt::Debug, iter};
+use voicevox_core::{AudioQueryModel, UserDictWord};
 
 use thiserror::Error;
 use tracing::error;
 
-use super::*;
 use voicevox_core::AccentPhraseModel;
+
+use crate::{
+    result_code::VoicevoxResultCode, VoicevoxAccelerationMode, VoicevoxInitializeOptions,
+    VoicevoxSynthesisOptions, VoicevoxTtsOptions, VoicevoxUserDictWord, VoicevoxUserDictWordType,
+};
 
 pub(crate) fn into_result_code_with_error(result: CApiResult<()>) -> VoicevoxResultCode {
     if let Err(err) = &result {
@@ -59,7 +63,7 @@ pub(crate) fn into_result_code_with_error(result: CApiResult<()>) -> VoicevoxRes
 pub(crate) type CApiResult<T> = std::result::Result<T, CApiError>;
 
 #[derive(Error, Debug)]
-pub enum CApiError {
+pub(crate) enum CApiError {
     #[error("{0}")]
     RustApi(#[from] voicevox_core::Error),
     #[error("UTF-8として不正な入力です")]

@@ -1,8 +1,10 @@
-use self::engine::{FullContextLabelError, KanaParseError};
-use super::*;
+use crate::{
+    engine::{FullContextLabelError, KanaParseError},
+    user_dict::InvalidWordError,
+    StyleId, VoiceModelId,
+};
 //use engine::
 use duplicate::duplicate_item;
-use onnxruntime::OrtError;
 use std::path::PathBuf;
 use thiserror::Error;
 use uuid::Uuid;
@@ -41,7 +43,7 @@ impl Error {
             ErrorRepr::GetSupportedDevices(_) => ErrorKind::GetSupportedDevices,
             ErrorRepr::StyleNotFound { .. } => ErrorKind::StyleNotFound,
             ErrorRepr::ModelNotFound { .. } => ErrorKind::ModelNotFound,
-            ErrorRepr::InferenceFailed => ErrorKind::InferenceFailed,
+            ErrorRepr::InferenceFailed { .. } => ErrorKind::InferenceFailed,
             ErrorRepr::ExtractFullContextLabel(_) => ErrorKind::ExtractFullContextLabel,
             ErrorRepr::ParseKana(_) => ErrorKind::ParseKana,
             ErrorRepr::LoadUserDict(_) => ErrorKind::LoadUserDict,
@@ -65,7 +67,7 @@ pub(crate) enum ErrorRepr {
     LoadModel(#[from] LoadModelError),
 
     #[error("サポートされているデバイス情報取得中にエラーが発生しました")]
-    GetSupportedDevices(#[source] OrtError),
+    GetSupportedDevices(#[source] anyhow::Error),
 
     #[error(
         "`{style_id}`に対するスタイルが見つかりませんでした。音声モデルが読み込まれていないか、読\
@@ -80,7 +82,7 @@ pub(crate) enum ErrorRepr {
     ModelNotFound { model_id: VoiceModelId },
 
     #[error("推論に失敗しました")]
-    InferenceFailed,
+    InferenceFailed(#[source] anyhow::Error),
 
     #[error(transparent)]
     ExtractFullContextLabel(#[from] FullContextLabelError),

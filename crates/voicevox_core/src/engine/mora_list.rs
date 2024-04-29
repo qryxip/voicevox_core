@@ -186,7 +186,7 @@ pub(super) const MORA_LIST_MINIMUM: &[[&str; 3]] = &[
     ["ア", "", "a"],
 ];
 
-pub fn mora2text(mora: &str) -> &str {
+pub(crate) fn mora2text(mora: &str) -> &str {
     for &[text, consonant, vowel] in MORA_LIST_MINIMUM {
         if mora.len() >= consonant.len()
             && &mora[..consonant.len()] == consonant
@@ -200,7 +200,6 @@ pub fn mora2text(mora: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
@@ -212,6 +211,6 @@ mod tests {
     #[case("u", "ウ")]
     #[case("fail", "fail")]
     fn test_mora2text(#[case] mora: &str, #[case] text: &str) {
-        assert_eq!(mora2text(mora), text);
+        assert_eq!(super::mora2text(mora), text);
     }
 }

@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
-use crate::common::{throw_if_err, RUNTIME};
+use crate::common::throw_if_err;
 use jni::{
     objects::{JObject, JString},
     sys::jobject,
@@ -15,9 +15,9 @@ unsafe extern "system" fn Java_jp_hiroshiba_voicevoxcore_VoiceModel_rsFromPath<'
 ) {
     throw_if_err(env, (), |env| {
         let model_path = env.get_string(&model_path)?;
-        let model_path = model_path.to_str()?;
+        let model_path = &*Cow::from(&model_path);
 
-        let internal = RUNTIME.block_on(voicevox_core::VoiceModel::from_path(model_path))?;
+        let internal = voicevox_core::blocking::VoiceModel::from_path(model_path)?;
 
         env.set_rust_field(&this, "handle", Arc::new(internal))?;
 
@@ -32,7 +32,7 @@ unsafe extern "system" fn Java_jp_hiroshiba_voicevoxcore_VoiceModel_rsGetId<'loc
 ) -> jobject {
     throw_if_err(env, std::ptr::null_mut(), |env| {
         let internal = env
-            .get_rust_field::<_, _, Arc<voicevox_core::VoiceModel>>(&this, "handle")?
+            .get_rust_field::<_, _, Arc<voicevox_core::blocking::VoiceModel>>(&this, "handle")?
             .clone();
 
         let id = internal.id().raw_voice_model_id();
@@ -50,11 +50,11 @@ unsafe extern "system" fn Java_jp_hiroshiba_voicevoxcore_VoiceModel_rsGetMetasJs
 ) -> jobject {
     throw_if_err(env, std::ptr::null_mut(), |env| {
         let internal = env
-            .get_rust_field::<_, _, Arc<voicevox_core::VoiceModel>>(&this, "handle")?
+            .get_rust_field::<_, _, Arc<voicevox_core::blocking::VoiceModel>>(&this, "handle")?
             .clone();
 
         let metas = internal.metas();
-        let metas_json = serde_json::to_string(&metas)?;
+        let metas_json = serde_json::to_string(&metas).expect("should not fail");
         Ok(env.new_string(metas_json)?.into_raw())
     })
 }

@@ -1,0 +1,36 @@
+[package]
+name = "downloader"
+edition.workspace = true
+
+[[bin]]
+name = "download"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+binstall-tar.workspace = true
+bytes.workspace = true
+clap = { workspace = true, features = ["derive"] }
+flate2.workspace = true
+fs-err = { workspace = true, features = ["tokio"] }
+futures-core.workspace = true
+futures-util.workspace = true
+indicatif.workspace = true
+octocrab = { workspace = true, default-features = false, features = ["rustls-tls", "stream"] }
+once_cell.workspace = true
+parse-display.workspace = true
+rayon.workspace = true
+reqwest = { workspace = true, default-features = false, features = ["rustls-tls", "stream"] }
+strum = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "sync"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+url.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = "warn"

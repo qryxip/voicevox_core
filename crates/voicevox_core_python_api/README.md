@@ -7,29 +7,11 @@ VOICEVOX CORE の Python バインディングです。
 以下の環境が必要です。
 
 - Rustup
-- Python ≧3.8の venv
-    - `maturin>=0.13.2,<0.14`
-
-[Maturin](https://maturin.rs/)は venv にインストールする必要があります。
-適当な場所に venv を作って下さい。
+- Python ≧ 3.8
+- Poetry ≧ 1.6
 
 ```console
-❯ python -m venv ../../.venv
-```
-
-```console
-❯ ../../.venv/Scripts/Activate.ps1 (Windows)
-```
-
-```console
-❯ ../../.venv/bin/activate (maxOS/Linux)
-```
-
-venv を作ったらその venv 上で Maturin をインストールします。
-
-```console
-# maturinのインストール
-❯ pip install -r ./requirements.txt
+❯ poetry install --with dev
 ```
 
 ## ファイル構成
@@ -49,7 +31,6 @@ venv を作ったらその venv 上で Maturin をインストールします。
 │       ├── _rust.abi3.{dll,dylib,so} : maturin developで生成されるpydファイルです。
 │       └── _rust.pyi                 : _rust.abi3.{dll,dylib,so}用のpyiファイルです。
 ├── README.md
-├── requirements.txt
 └── src                               : Rustのソースコードです。_rust.abi3.{dll,dylib,so}にコンパイルされます。
     └── lib.rs
 ```
@@ -71,3 +52,11 @@ venv を作ったらその venv 上で Maturin をインストールします。
 ## サンプル実行
 
 `maturin develop` で editable な状態でインストールした後、[example/python](../../example/python) にてサンプルを実行できます。
+
+## トラブルシューティング
+
+Maturinで依存クレート（例: [open\_jtalk-sys](https://github.com/VOICEVOX/open_jtalk-rs)）のビルドが失敗する場合は、Maturinの外であらかじめ `cargo build` すれば解決する場合があります。リンクまでは上手くいかないかもしれませんが、該当の依存クレートまではビルドできるかもしれません。
+
+```console
+❯ cargo build -p voicevox_core_python_api [--releasee]
+```

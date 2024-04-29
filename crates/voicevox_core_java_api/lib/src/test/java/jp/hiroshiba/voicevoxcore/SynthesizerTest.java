@@ -8,12 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import jp.hiroshiba.voicevoxcore.exceptions.InferenceFailedException;
+import jp.hiroshiba.voicevoxcore.exceptions.InvalidModelDataException;
 import org.junit.jupiter.api.Test;
 
 class SynthesizerTest extends TestUtils {
   @FunctionalInterface
   interface MoraCheckCallback {
     boolean check(Mora mora, Mora otherMora);
+  }
+
+  @Test
+  void checkIsGpuMode() {
+    OpenJtalk openJtalk = loadOpenJtalk();
+    Synthesizer synthesizer =
+        Synthesizer.builder(openJtalk).accelerationMode(Synthesizer.AccelerationMode.CPU).build();
+    assertFalse(synthesizer.isGpuMode());
   }
 
   boolean checkAllMoras(
@@ -34,18 +44,26 @@ class SynthesizerTest extends TestUtils {
   }
 
   @Test
-  void checkModel() {
+  void checkModel() throws InvalidModelDataException {
     VoiceModel model = loadModel();
     OpenJtalk openJtalk = loadOpenJtalk();
     Synthesizer synthesizer = Synthesizer.builder(openJtalk).build();
+
+    assertTrue(synthesizer.metas().length == 0);
+
     synthesizer.loadVoiceModel(model);
+
+    assertTrue(synthesizer.metas().length >= 1);
     assertTrue(synthesizer.isLoadedVoiceModel(model.id));
+
     synthesizer.unloadVoiceModel(model.id);
+
+    assertTrue(synthesizer.metas().length == 0);
     assertFalse(synthesizer.isLoadedVoiceModel(model.id));
   }
 
   @Test
-  void checkAudioQuery() {
+  void checkAudioQuery() throws InferenceFailedException, InvalidModelDataException {
     VoiceModel model = loadModel();
     OpenJtalk openJtalk = loadOpenJtalk();
     Synthesizer synthesizer = Synthesizer.builder(openJtalk).build();
@@ -56,7 +74,7 @@ class SynthesizerTest extends TestUtils {
   }
 
   @Test
-  void checkAccentPhrases() {
+  void checkAccentPhrases() throws InferenceFailedException, InvalidModelDataException {
     VoiceModel model = loadModel();
     OpenJtalk openJtalk = loadOpenJtalk();
     Synthesizer synthesizer = Synthesizer.builder(openJtalk).build();
@@ -86,7 +104,7 @@ class SynthesizerTest extends TestUtils {
   }
 
   @Test
-  void checkTts() {
+  void checkTts() throws InferenceFailedException, InvalidModelDataException {
     VoiceModel model = loadModel();
     OpenJtalk openJtalk = loadOpenJtalk();
     Synthesizer synthesizer = Synthesizer.builder(openJtalk).build();
