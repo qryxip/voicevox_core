@@ -12,6 +12,8 @@ use serde_with::{serde_as, DisplayFromStr};
 
 use crate::{StyleId, VoiceModelId};
 
+pub(crate) use self::model_filename::ModelFilename;
+
 #[derive(Clone)]
 struct FormatVersionV1;
 
@@ -82,11 +84,18 @@ pub(crate) struct ManifestDomains {
 
 #[derive(Deserialize, Clone)]
 pub(crate) struct TalkManifest {
-    pub(crate) predict_duration_filename: String,
-    pub(crate) predict_intonation_filename: String,
-    pub(crate) decode_filename: String,
+    pub(crate) predict_duration_filename: ModelFilename,
+    pub(crate) predict_intonation_filename: ModelFilename,
+    pub(crate) decode_filename: ModelFilename,
     #[serde(default)]
     pub(crate) style_id_to_inner_voice_id: StyleIdToInnerVoiceId,
+}
+
+#[derive(Clone, Copy, strum::AsRefStr)]
+#[strum(serialize_all = "lowercase")]
+pub(crate) enum ModelFileKind {
+    Onnx,
+    Bin,
 }
 
 #[serde_as]
@@ -95,6 +104,53 @@ pub(crate) struct TalkManifest {
 pub(crate) struct StyleIdToInnerVoiceId(
     #[serde_as(as = "Arc<BTreeMap<DisplayFromStr, _>>")] Arc<BTreeMap<StyleId, InnerVoiceId>>,
 );
+
+mod model_filename {
+    use camino::Utf8Path;
+    use serde::{de::Error as _, Deserialize, Deserializer};
+
+    use super::ModelFileKind;
+
+    #[derive(Clone)]
+    pub(crate) struct ModelFilename(String);
+
+    impl ModelFilename {
+        #[cfg(test)]
+        pub(crate) fn new(stem: &str, kind: ModelFileKind) -> Self {
+            ModelFilename(Utf8Path::new(stem).with_extension(kind).into())
+        }
+
+        pub(crate) fn get(&self) -> &str {
+            &self.0
+        }
+
+        pub(crate) fn kind(&self) -> ModelFileKind {
+            match Utf8Path::new(&self.0).extension() {
+                Some("onnx") => ModelFileKind::Onnx,
+                Some("bin") => ModelFileKind::Bin,
+                _ => unreachable!(
+                    "unexpected extension. this should have been checked: {:?}",
+                    self.0,
+                ),
+            }
+        }
+    }
+
+    impl<'de> Deserialize<'de> for ModelFilename {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let s = String::deserialize(deserializer)?;
+            if ![Some("onnx"), Some("bin")].contains(&Utf8Path::new(&s).extension()) {
+                return Err(D::Error::custom(
+                    "model filename must ends with .onnx or .bin",
+                ));
+            }
+            Ok(Self(s))
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -103,8 +103,8 @@ jobs:
             { "os": "windows-2022", "features": "", "can_skip_in_simple_test": true },
             { "os": "windows-2019", "features": "directml", "can_skip_in_simple_test": false },
             { "os": "windows-2022", "features": "directml", "can_skip_in_simple_test": true },
-            { "os": "macos-11", "features": "", "can_skip_in_simple_test": false },
-            { "os": "macos-12", "features": "", "can_skip_in_simple_test": true },
+            { "os": "macos-12", "features": "", "can_skip_in_simple_test": false },
+            { "os": "macos-13", "features": "", "can_skip_in_simple_test": true },
             { "os": "ubuntu-20.04", "features": "", "can_skip_in_simple_test": false },
             { "os": "ubuntu-22.04", "features": "", "can_skip_in_simple_test": true }
           ]'
@@ -199,8 +199,8 @@ jobs:
           mkdir -p example/cpp/unix/voicevox_core/
           cp -v crates/voicevox_core_c_api/include/voicevox_core.h example/cpp/unix/voicevox_core/
           cp -v target/debug/libvoicevox_core.{so,dylib} example/cpp/unix/voicevox_core/ || true
-          cp -v target/debug/libonnxruntime.so.* example/cpp/unix/voicevox_core/ || true
-          cp -v target/debug/libonnxruntime.*.dylib example/cpp/unix/voicevox_core/ || true
+          cp -v target/debug/libvoicevox_onnxruntime.so.* example/cpp/unix/voicevox_core/ || true
+          cp -v target/debug/libvoicevox_onnxruntime.*.dylib example/cpp/unix/voicevox_core/ || true
 
       - if: startsWith(matrix.os, 'mac')
         uses: jwlawson/actions-setup-cmake@v2
@@ -281,9 +281,9 @@ jobs:
       - run: poetry run maturin develop --locked
       - name: 必要なDLLをコピーしてpytestを実行
         run: |
-          cp -v ../../target/debug/onnxruntime.dll . || true
-          cp -v ../../target/debug/libonnxruntime.so.* . || true
-          cp -v ../../target/debug/libonnxruntime.*.dylib . || true
+          cp -v ../../target/debug/voicevox_onnxruntime.dll . || true
+          cp -v ../../target/debug/libvoicevox_onnxruntime.so.* . || true
+          cp -v ../../target/debug/libvoicevox_onnxruntime.*.dylib . || true
 
           poetry run pytest
       - name: Exampleを実行
@@ -291,6 +291,22 @@ jobs:
           for file in ../../example/python/run{,-asyncio}.py; do
             poetry run python "$file" ../test_util/data/model/sample.vvm --dict-dir ../test_util/data/open_jtalk_dic_utf_8-1.11
           done
+      # 現時点のlibvoicevox_onnxruntimeはROT13の復号機能があるので、ROT13のVVMを作って試してみる
+      - name: .onnxをROT13で暗号化したVVMでExampleを実行
+        if: runner.os == 'Linux' # `tr(1)`と`zip(1)`の対応が面倒
+        run: |
+          mkdir ../../model/rot13.vvm
+          sed 's/\.onnx/.bin/' ../../model/sample.vvm/manifest.json > ../../model/rot13.vvm/manifest.json
+          cp ../../model/{sample,rot13}.vvm/metas.json
+          for name in predict_duration predict_intonation decode; do
+            tr A-Za-z N-ZA-Mn-za-m < "../../model/sample.vvm/$name.onnx" > "../../model/rot13.vvm/$name.bin"
+          done
+          zip -rj ./rot13.vvm ../../model/rot13.vvm
+
+          for file in ../../example/python/run{,-asyncio}.py; do
+            poetry run python "$file" ./rot13.vvm --dict-dir ../test_util/data/open_jtalk_dic_utf_8-1.11
+          done
+
   build-and-test-java-api:
     strategy:
       fail-fast: false
@@ -322,12 +338,15 @@ jobs:
           case "$RUNNER_OS" in
           Windows)
             DLL_NAME="voicevox_core_java_api.dll"
+            LIB_PATH_ENV_NAME="PATH"
             ;;
           macOS)
             DLL_NAME="libvoicevox_core_java_api.dylib"
+            LIB_PATH_ENV_NAME="DYLD_FALLBACK_LIBRARY_PATH"
             ;;
           Linux)
             DLL_NAME="libvoicevox_core_java_api.so"
+            LIB_PATH_ENV_NAME="LD_LIBRARY_PATH"
             ;;
           *)
             echo "Unsupported OS: $RUNNER_OS"
@@ -335,7 +354,10 @@ jobs:
             ;;
           esac
           TARGET_NAME="$OS-$ARCH"
-          mkdir -p "./lib/src/main/resources/dll/$TARGET_NAME"
+          mkdir -p "./lib/src/main/resources/dll/$TARGET_NAME" "$RUNNER_TEMP/lib"
           cp -v "../../target/debug/$DLL_NAME" "./lib/src/main/resources/dll/$TARGET_NAME/$DLL_NAME"
+          cp -v ../../target/debug/*voicevox_onnxruntime* "$RUNNER_TEMP/lib/"
           echo "target = $TARGET_NAME, dll = $DLL_NAME"
+          ls -l "$RUNNER_TEMP/lib"
+          eval "export \"$LIB_PATH_ENV_NAME=$RUNNER_TEMP/lib:\$$LIB_PATH_ENV_NAME\""
           ./gradlew test --info

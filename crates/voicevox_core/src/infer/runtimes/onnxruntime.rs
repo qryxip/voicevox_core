@@ -8,11 +8,11 @@ use ort::{
     GraphOptimizationLevel, IntoTensorElementType, TensorElementType, ValueType,
 };
 
-use crate::{devices::SupportedDevices, error::ErrorRepr};
+use crate::{devices::SupportedDevices, error::ErrorRepr, voice_model::ModelBytes};
 
 use super::super::{
-    DecryptModelError, InferenceRuntime, InferenceSessionOptions, InputScalarKind,
-    OutputScalarKind, OutputTensor, ParamInfo, PushInputTensor,
+    InferenceRuntime, InferenceSessionOptions, InputScalarKind, OutputScalarKind, OutputTensor,
+    ParamInfo, PushInputTensor,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -44,7 +44,7 @@ impl InferenceRuntime for Onnxruntime {
     }
 
     fn new_session(
-        model: impl FnOnce() -> std::result::Result<Vec<u8>, DecryptModelError>,
+        model: &ModelBytes,
         options: InferenceSessionOptions,
     ) -> anyhow::Result<(
         Self::Session,
@@ -67,8 +67,12 @@ impl InferenceRuntime for Onnxruntime {
             CUDAExecutionProvider::default().register(&builder)?;
         }
 
-        let model = model()?;
-        let sess = builder.commit_from_memory(&{ model })?;
+        // VOICEVOX CORE側
+
+        let sess = match model {
+            ModelBytes::Onnx(onnx) => builder.commit_from_memory(onnx),
+            ModelBytes::Bin(bin) => builder.commit_from_vv_bin(bin, "13"),
+        }?;
 
         let input_param_infos = sess
             .inputs
