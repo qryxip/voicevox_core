@@ -1,0 +1,24 @@
+name: measure-ep-init
+
+on:
+  push:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  a:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/rust-toolchain-from-file
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: measure-ep-init
+      - run: |
+          curl -fLO https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-win-x64-gpu-cuda12-1.18.1.zip
+          unzip onnxruntime-win-x64-gpu-cuda12-1.18.1.zip
+          mv ./onnxruntime-win-x64-gpu-1.18.1/lib/* .
+          cargo run --release -p voicevox_core --example example || true

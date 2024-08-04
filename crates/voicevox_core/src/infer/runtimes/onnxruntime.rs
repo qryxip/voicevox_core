@@ -52,12 +52,19 @@ impl InferenceRuntime for self::blocking::Onnxruntime {
     }
 
     fn test_gpu(&self, gpu: GpuSpec) -> anyhow::Result<()> {
+        dbg!(gpu);
+        let start = std::time::Instant::now();
         let sess_builder = &ort::SessionBuilder::new()?;
-        match gpu {
-            GpuSpec::Cuda => CUDAExecutionProvider::default().register(sess_builder),
+        let ret = match gpu {
+            GpuSpec::Cuda => CUDAExecutionProvider::default()
+                .with_device_id(0)
+                .register(sess_builder),
             GpuSpec::Dml => DirectMLExecutionProvider::default().register(sess_builder),
         }
-        .map_err(Into::into)
+        .map_err(Into::into);
+        let end = std::time::Instant::now();
+        dbg!(end - start);
+        ret
     }
 
     fn new_session(
@@ -73,6 +80,8 @@ impl InferenceRuntime for self::blocking::Onnxruntime {
             .with_optimization_level(GraphOptimizationLevel::Level1)?
             .with_intra_threads(options.cpu_num_threads.into())?;
 
+        let start = std::time::Instant::now();
+
         match options.device {
             DeviceSpec::Cpu => {}
             DeviceSpec::Gpu(GpuSpec::Cuda) => {
@@ -85,6 +94,9 @@ impl InferenceRuntime for self::blocking::Onnxruntime {
                 DirectMLExecutionProvider::default().register(&builder)?;
             }
         };
+
+        let end = std::time::Instant::now();
+        dbg!(end - start);
 
         let model = model()?;
         let sess = builder.commit_from_memory(&{ model })?;
