@@ -88,9 +88,9 @@ jobs:
         with:
           key: "cargo-unit-test-cache"
       - name: Run cargo unit test
-        run: RUST_BACKTRACE=full cargo test --lib --bins -vv -- --include-ignored
+        run: RUST_BACKTRACE=full cargo test --lib --bins -v -- --include-ignored
       - name: Run cargo documentation test
-        run: RUST_BACKTRACE=full cargo test --doc -vv
+        run: RUST_BACKTRACE=full cargo test --doc -v
 
   rust-integration-test-strategy-matrix: # 実行対象の条件をフィルタリングする
     runs-on: ubuntu-latest
