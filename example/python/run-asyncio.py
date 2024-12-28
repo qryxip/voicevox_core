@@ -92,12 +92,7 @@ async def main() -> None:
 
     logger.info("%s", f"Initializing ({args.mode=}, {args.dict_dir=})")
     synthesizer = Synthesizer(
-        onnxruntime,
-        await OpenJtalk.new(args.dict_dir),
-        acceleration_mode=args.mode,
-        cpu_num_threads=max(
-            multiprocessing.cpu_count(), 2
-        ),  # https://github.com/VOICEVOX/voicevox_core/issues/888
+        onnxruntime, await OpenJtalk.new(args.dict_dir), acceleration_mode=args.mode
     )
 
     logger.debug("%s", f"{synthesizer.metas=}")
