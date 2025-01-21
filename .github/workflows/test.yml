@@ -110,7 +110,9 @@ jobs:
             { "os": "macos-13", "can_skip_in_simple_test": false },
             { "os": "macos-14", "can_skip_in_simple_test": true },
             { "os": "ubuntu-20.04", "can_skip_in_simple_test": false },
-            { "os": "ubuntu-22.04", "can_skip_in_simple_test": true }
+            { "os": "ubuntu-22.04", "can_skip_in_simple_test": true },
+            { "os": "ubuntu-22.04-arm", "can_skip_in_simple_test": false },
+            { "os": "ubuntu-24.04-arm", "can_skip_in_simple_test": false }
           ]'
 
           # FIXME: composite action に切り出す
@@ -269,6 +271,7 @@ jobs:
           - os: windows-latest
           - os: macos-latest
           - os: ubuntu-latest
+          - os: ubuntu-22.04-arm
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -315,6 +318,7 @@ jobs:
           - os: windows-latest
           - os: macos-latest
           - os: ubuntu-latest
+          - os: ubuntu-22.04-arm
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

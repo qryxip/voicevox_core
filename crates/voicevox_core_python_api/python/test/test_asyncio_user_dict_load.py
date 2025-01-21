@@ -24,9 +24,6 @@ async def test_user_dict_load() -> None:
     synthesizer = voicevox_core.asyncio.Synthesizer(
         onnxruntime,
         open_jtalk,
-        cpu_num_threads=max(
-            multiprocessing.cpu_count(), 2
-        ),  # https://github.com/VOICEVOX/voicevox_core/issues/888
     )
 
     await synthesizer.load_voice_model(model)
