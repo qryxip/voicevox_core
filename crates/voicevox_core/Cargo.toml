@@ -10,6 +10,10 @@ license.workspace = true
 features = ["load-onnxruntime", "link-onnxruntime"]
 rustdoc-args = ["--cfg", "docsrs"]
 
+[[example]]
+name = "nonblocking-tts"
+required-features = ["load-onnxruntime"]
+
 # rustdocを参照
 [features]
 default = []

@@ -194,7 +194,7 @@ impl InferenceRuntime for self::blocking::Onnxruntime {
     async fn run_async(
         OnnxruntimeRunContext { sess, inputs }: Self::RunContext,
     ) -> anyhow::Result<Vec<OutputTensor>> {
-        extract_outputs(&sess.lock().await.run_async(inputs)?.await?)
+        ::blocking::unblock(move || extract_outputs(&sess.lock_blocking().run(inputs)?)).await
     }
 }
 

@@ -1,0 +1,56 @@
+name: test-run-async
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: ./.github/actions/rust-toolchain-from-file
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-run-async
+
+      - name: '`nonblocking-tts`'
+        run: seq 1 10 | xargs -I {} -P 10 cargo run --example nonblocking-tts
+
+  python:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: ./.github/actions/rust-toolchain-from-file
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-run-async
+
+      - name: '`poetry install`'
+        run: |
+          pip install --upgrade poetry
+          poetry install --with dev --with test
+        working-directory: ./crates/voicevox_core_python_api
+
+      - name: Generate test data
+        run: cargo build -p test_util -v # build scriptにより/crates/test_util/data/の生成
+
+      - name: '`maturin develop`'
+        run: poetry run maturin develop --locked
+        working-directory: ./crates/voicevox_core_python_api
+
+      - name: pytest
+        run: for _ in {1..100}; do poetry run pytest ./python/test/test_asyncio_user_dict_load.py; done
+        working-directory: ./crates/voicevox_core_python_api
