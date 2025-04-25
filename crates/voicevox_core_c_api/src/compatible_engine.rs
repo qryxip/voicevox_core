@@ -1,7 +1,8 @@
 use std::{
     collections::BTreeMap,
     env,
-    ffi::{c_char, CString},
+    ffi::{c_char, CString, OsStr},
+    iter,
     sync::{Arc, LazyLock, Mutex, MutexGuard},
 };
 
@@ -13,7 +14,7 @@ use voicevox_core::{
     __internal::interop::{PerformInference as _, ToJsonValue as _},
 };
 
-use crate::{helpers::display_error, init_logger_once};
+use crate::init_logger_once;
 
 macro_rules! ensure_initialized {
     ($synthesizer:expr $(,)?) => {
@@ -30,22 +31,62 @@ macro_rules! ensure_initialized {
 static ERROR_MESSAGE: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
 
 static ONNXRUNTIME: LazyLock<&'static voicevox_core::blocking::Onnxruntime> = LazyLock::new(|| {
-    let alt_onnxruntime_filename = voicevox_core::blocking::Onnxruntime::LIB_VERSIONED_FILENAME
-        .replace(
-            voicevox_core::blocking::Onnxruntime::LIB_NAME,
-            "onnxruntime",
-        );
+    fn fallback_to(
+        err: &voicevox_core::Error,
+        filename: impl AsRef<OsStr>,
+    ) -> voicevox_core::Result<&'static voicevox_core::blocking::Onnxruntime> {
+        display_error_as_warning(err);
+        warn!("falling back to `{}`", filename.as_ref().to_string_lossy());
+        voicevox_core::blocking::Onnxruntime::load_once()
+            .filename(filename.as_ref())
+            .perform()
+    }
+
+    fn display_error_as_warning(err: &impl std::error::Error) {
+        itertools::chain(
+            [err.to_string()],
+            iter::successors(err.source(), |&e| e.source()).map(|e| format!("Caused by: {e}")),
+        )
+        .for_each(|msg| warn!("{msg}"));
+    }
+
     voicevox_core::blocking::Onnxruntime::load_once()
         .perform()
         .or_else(|err| {
-            warn!("{err}");
-            warn!("falling back to `{alt_onnxruntime_filename}`");
-            voicevox_core::blocking::Onnxruntime::load_once()
-                .filename(alt_onnxruntime_filename)
-                .perform()
+            fallback_to(
+                &err,
+                process_path::get_dylib_path()
+                    .unwrap_or_else(|| todo!())
+                    .parent()
+                    .unwrap_or_else(|| todo!())
+                    .join(voicevox_core::blocking::Onnxruntime::LIB_VERSIONED_FILENAME),
+            )
         })
-        .unwrap_or_else(|err| {
-            display_error(&err);
+        .or_else(|err| {
+            fallback_to(
+                &err,
+                voicevox_core::blocking::Onnxruntime::LIB_VERSIONED_FILENAME.replace(
+                    voicevox_core::blocking::Onnxruntime::LIB_NAME,
+                    "onnxruntime",
+                ),
+            )
+        })
+        .or_else(|err| {
+            fallback_to(
+                &err,
+                process_path::get_dylib_path()
+                    .unwrap_or_else(|| todo!())
+                    .parent()
+                    .unwrap_or_else(|| todo!())
+                    .join(
+                        voicevox_core::blocking::Onnxruntime::LIB_VERSIONED_FILENAME.replace(
+                            voicevox_core::blocking::Onnxruntime::LIB_NAME,
+                            "onnxruntime",
+                        ),
+                    ),
+            )
+        })
+        .unwrap_or_else(|_| {
             panic!("ONNX Runtimeをロードもしくは初期化ができなかったため、クラッシュします");
         })
 });
