@@ -323,22 +323,15 @@ jobs:
       - run: poetry run maturin develop --locked
       - name: pytestを実行
         run: poetry run pytest
+      - run: |
+          # https://github.com/VOICEVOX/voicevox_core/issues/968 が発生しないかの確認。
+          for _ in {1..100}; do
+            poetry run pytest ./python/test/test_asyncio_user_dict_load.py;
+          done
       - name: Exampleを実行
         run: |
           for file in ../../example/python/run{,-asyncio}.py; do
             poetry run python "$file" ../test_util/data/model/sample.vvm --dict-dir ../test_util/data/open_jtalk_dic_utf_8-1.11 --onnxruntime ../test_util/data/lib/*onnxruntime*
-          done
-          # https://github.com/VOICEVOX/voicevox_core/issues/873 が再発しないかの確認。
-          #
-          # Python 3.8においては、プロセスの終了までにFatal Python errorに至らなくても`StopIteration`までは達することが多い。
-          # #873の要因は依然として不明であるが、`StopIteration`が出ないことの確認をもって#873の解決とすることにする。
-          #
-          # TODO: 10回の実行におよそ60秒ほどかかるため、状況の経過を見てやめる。
-          for _ in {1..10}; do
-            poetry run python ../../example/python/run-asyncio.py ../test_util/data/model/sample.vvm --dict-dir ../test_util/data/open_jtalk_dic_utf_8-1.11 --onnxruntime ../test_util/data/lib/*onnxruntime* \
-              2> >(tee ./stderr.txt >&2)
-            # shellcheck disable=SC2059
-            ! grep -q StopIteration ./stderr.txt
           done
   build-and-test-java-api:
     strategy:

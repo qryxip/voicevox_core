@@ -46,8 +46,8 @@ impl AsyncExt for SingleTasked {
 
 impl AsyncExt for BlockingThreadPool {
     type Cancellable = bool;
-    const LIGHT_INFERENCE_CANCELLABLE: Self::Cancellable = false;
-    const DEFAULT_HEAVY_INFERENCE_CANCELLABLE: Self::Cancellable = false;
+    const LIGHT_INFERENCE_CANCELLABLE: Self::Cancellable = true;
+    const DEFAULT_HEAVY_INFERENCE_CANCELLABLE: Self::Cancellable = true;
 
     async fn run_session<R: InferenceRuntime>(
         ctx: R::RunContext,
