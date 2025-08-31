@@ -14,6 +14,7 @@ async-lock.workspace = true
 blocking.workspace = true
 camino.workspace = true
 derive_more = { workspace = true, features = ["from"] }
+duplicate.workspace = true
 easy-ext.workspace = true
 futures-lite.workspace = true
 heck.workspace = true

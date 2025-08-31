@@ -6,7 +6,7 @@ from voicevox_core import AudioQuery
 
 
 def test_accept_json_without_optional_fields() -> None:
-    from_json(
+    AudioQuery.from_json(
         textwrap.dedent(
             """\
             {
@@ -54,13 +54,5 @@ def test_dumps() -> None:
         }""",
     )
 
-    after = to_json(from_json(BEFORE))
+    after = AudioQuery.from_json(BEFORE).to_json()
     assert BEFORE.replace("\n", "").replace(" ", "") == after
-
-
-def from_json(json: str) -> AudioQuery:
-    return getattr(AudioQuery, "_AudioQuery__from_json")(json)
-
-
-def to_json(audio_query: AudioQuery) -> str:
-    return getattr(audio_query, "_AudioQuery__to_json")()

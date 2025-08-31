@@ -5037,6 +5037,7 @@ dependencies = [
  "blocking",
  "camino",
  "derive_more 1.0.0",
+ "duplicate",
  "easy-ext",
  "futures-lite",
  "heck 0.5.0",

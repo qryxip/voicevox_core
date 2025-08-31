@@ -5,11 +5,22 @@ from typing import Literal, NewType, NoReturn, TypeAlias
 from uuid import UUID
 
 from .._rust import (
+    _accent_phrase_from_json,
+    _accent_phrase_to_json,
     _audio_query_from_accent_phrases,
     _audio_query_from_json,
     _audio_query_to_json,
+    _character_meta_from_json,
+    _character_meta_to_json,
+    _mora_from_json,
+    _mora_to_json,
     _ReservedFields,
+    _style_meta_from_json,
+    _style_meta_to_json,
+    _supported_devices_to_json,
     _to_zenkaku,
+    _user_dict_word_from_json,
+    _user_dict_word_to_json,
     _validate_user_dict_word,
 )
 from ._please_do_not_use import _Reserved
@@ -138,6 +149,13 @@ class StyleMeta:
     :attr:`CharacterMeta.styles` は、この値に対して昇順に並んでいるべきである。
     """
 
+    @staticmethod
+    def from_json(json: str) -> "StyleMeta":
+        return _style_meta_from_json(json)
+
+    def to_json(self) -> str:
+        return _style_meta_to_json(self)
+
 
 @dataclasses.dataclass
 class CharacterMeta:
@@ -163,6 +181,13 @@ class CharacterMeta:
 
     ``CharacterMeta`` の列は、この値に対して昇順に並んでいるべきである。
     """
+
+    @staticmethod
+    def from_json(json: str) -> "CharacterMeta":
+        return _character_meta_from_json(json)
+
+    def to_json(self) -> str:
+        return _character_meta_to_json(self)
 
 
 @dataclasses.dataclass
@@ -204,6 +229,9 @@ class SupportedDevices:
     def __post_init__(self, reserved: Never) -> None:
         if not isinstance(typing.cast(object, reserved), _ReservedFields):
             raise TypeError("You cannot instantiate `SupportedDevices` by yourself")
+
+    def to_json(self) -> str:
+        return _supported_devices_to_json(self)
 
 
 AccelerationMode: TypeAlias = Literal["AUTO", "CPU", "GPU"] | _Reserved
@@ -275,6 +303,13 @@ class Mora:
     consonant_length: float | None = None
     """子音の音長。"""
 
+    @staticmethod
+    def from_json(json: str) -> "Mora":
+        return _mora_from_json(json)
+
+    def to_json(self) -> str:
+        return _mora_to_json(self)
+
 
 @dataclasses.dataclass
 class AccentPhrase:
@@ -293,6 +328,13 @@ class AccentPhrase:
 
     is_interrogative: bool = False
     """疑問系かどうか。"""
+
+    @staticmethod
+    def from_json(json: str) -> "AccentPhrase":
+        return _accent_phrase_from_json(json)
+
+    def to_json(self) -> str:
+        return _accent_phrase_to_json(self)
 
 
 @dataclasses.dataclass
@@ -345,15 +387,11 @@ class AudioQuery:
     def from_accent_phrases(accent_phrases: list["AccentPhrase"]) -> "AudioQuery":
         return _audio_query_from_accent_phrases(accent_phrases)
 
-    # テストに使用する目的でのみ存在
-
     @staticmethod
-    def __from_json(  # pyright: ignore [reportUnusedFunction]
-        json: str,
-    ) -> "AudioQuery":
+    def from_json(json: str) -> "AudioQuery":
         return _audio_query_from_json(json)
 
-    def __to_json(self) -> str:  # pyright: ignore [reportUnusedFunction]
+    def to_json(self) -> str:
         return _audio_query_to_json(self)
 
 
@@ -456,3 +494,10 @@ class UserDictWord:
         object.__setattr__(self, "surface", _to_zenkaku(self.surface))
 
         _validate_user_dict_word(self)
+
+    @staticmethod
+    def from_json(json: str) -> "UserDictWord":
+        return _user_dict_word_from_json(json)
+
+    def to_json(self) -> str:
+        return _user_dict_word_to_json(self)

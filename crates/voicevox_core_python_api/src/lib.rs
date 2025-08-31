@@ -5,6 +5,11 @@ use std::{
 };
 
 mod convert;
+use crate::convert::{
+    AccentPhraseExt as _, CharacterMetaExt as _, DeserializeOwnedExt as _, MoraExt as _,
+    StyleMetaExt as _, SupportedDevicesExt as _, UserDictWordExt as _,
+};
+
 use self::convert::{AudioQueryExt as _, ToDataclass, from_utf8_path};
 use easy_ext::ext;
 use log::{debug, warn};
@@ -17,7 +22,8 @@ use pyo3::{
     wrap_pyfunction,
 };
 use voicevox_core::{
-    __internal::interop::raii::MaybeClosed, AccentPhrase, AudioQuery, UserDictWord,
+    __internal::interop::raii::MaybeClosed, AccentPhrase, AudioQuery, CharacterMeta, Mora,
+    StyleMeta, SupportedDevices, UserDictWord,
 };
 
 #[pymodule]
@@ -27,11 +33,22 @@ fn rust(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
 
     module.add("__version__", pyproject_project_version!())?;
     module.add_class::<_ReservedFields>()?;
+    module.add_wrapped(wrap_pyfunction!(_character_meta_from_json))?;
+    module.add_wrapped(wrap_pyfunction!(_character_meta_to_json))?;
+    module.add_wrapped(wrap_pyfunction!(_style_meta_from_json))?;
+    module.add_wrapped(wrap_pyfunction!(_style_meta_to_json))?;
+    module.add_wrapped(wrap_pyfunction!(_supported_devices_to_json))?;
     module.add_wrapped(wrap_pyfunction!(_audio_query_from_accent_phrases))?;
     module.add_wrapped(wrap_pyfunction!(_audio_query_from_json))?;
     module.add_wrapped(wrap_pyfunction!(_audio_query_to_json))?;
+    module.add_wrapped(wrap_pyfunction!(_accent_phrase_from_json))?;
+    module.add_wrapped(wrap_pyfunction!(_accent_phrase_to_json))?;
+    module.add_wrapped(wrap_pyfunction!(_mora_from_json))?;
+    module.add_wrapped(wrap_pyfunction!(_mora_to_json))?;
     module.add_wrapped(wrap_pyfunction!(_validate_user_dict_word))?;
     module.add_wrapped(wrap_pyfunction!(_to_zenkaku))?;
+    module.add_wrapped(wrap_pyfunction!(_user_dict_word_from_json))?;
+    module.add_wrapped(wrap_pyfunction!(_user_dict_word_to_json))?;
     module.add_wrapped(wrap_pyfunction!(wav_from_s16le))?;
 
     add_exceptions(module)?;
@@ -261,6 +278,37 @@ impl VoiceModelFilePyFields {
 struct _ReservedFields;
 
 #[pyfunction]
+fn _character_meta_from_json(json: &str) -> PyResult<ToDataclass<CharacterMeta>> {
+    CharacterMeta::from_json(json).map(Into::into)
+}
+
+#[pyfunction]
+fn _character_meta_to_json(
+    #[pyo3(from_py_with = "convert::from_dataclass_via_serde")] character: CharacterMeta,
+) -> String {
+    character.to_json()
+}
+
+#[pyfunction]
+fn _style_meta_from_json(json: &str) -> PyResult<ToDataclass<StyleMeta>> {
+    StyleMeta::from_json(json).map(Into::into)
+}
+
+#[pyfunction]
+fn _style_meta_to_json(
+    #[pyo3(from_py_with = "convert::from_dataclass_via_serde")] style: StyleMeta,
+) -> String {
+    style.to_json()
+}
+
+#[pyfunction]
+fn _supported_devices_to_json(
+    #[pyo3(from_py_with = "convert::from_supported_devices")] supported_devices: SupportedDevices,
+) -> String {
+    supported_devices.to_json()
+}
+
+#[pyfunction]
 fn _audio_query_from_accent_phrases(
     #[pyo3(from_py_with = "convert::from_accent_phrases")] accent_phrases: Vec<AccentPhrase>,
 ) -> ToDataclass<AudioQuery> {
@@ -280,6 +328,28 @@ fn _audio_query_to_json(
 }
 
 #[pyfunction]
+fn _accent_phrase_from_json(json: &str) -> PyResult<ToDataclass<AccentPhrase>> {
+    AccentPhrase::from_json(json).map(Into::into)
+}
+
+#[pyfunction]
+fn _accent_phrase_to_json(
+    #[pyo3(from_py_with = "convert::from_dataclass_via_serde")] accent_phrase: AccentPhrase,
+) -> String {
+    accent_phrase.to_json()
+}
+
+#[pyfunction]
+fn _mora_from_json(json: &str) -> PyResult<ToDataclass<Mora>> {
+    Mora::from_json(json).map(Into::into)
+}
+
+#[pyfunction]
+fn _mora_to_json(#[pyo3(from_py_with = "convert::from_dataclass_via_serde")] mora: Mora) -> String {
+    mora.to_json()
+}
+
+#[pyfunction]
 fn _validate_user_dict_word(
     #[expect(unused_variables)]
     #[pyo3(from_py_with = "convert::to_rust_user_dict_word")]
@@ -290,6 +360,18 @@ fn _validate_user_dict_word(
 #[pyfunction]
 fn _to_zenkaku(text: &str) -> PyResult<String> {
     Ok(voicevox_core::__internal::to_zenkaku(text))
+}
+
+#[pyfunction]
+fn _user_dict_word_from_json(json: &str) -> PyResult<ToDataclass<UserDictWord>> {
+    UserDictWord::from_json(json).map(Into::into)
+}
+
+#[pyfunction]
+fn _user_dict_word_to_json(
+    #[pyo3(from_py_with = "crate::convert::to_rust_user_dict_word")] word: UserDictWord,
+) -> String {
+    word.to_json()
 }
 
 #[pyfunction]

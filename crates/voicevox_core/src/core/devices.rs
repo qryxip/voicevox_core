@@ -5,6 +5,7 @@ use std::{
 };
 
 use derive_more::BitAnd;
+use easy_ext::ext;
 use serde::Serialize;
 
 use crate::convert::ToJsonValue;
@@ -123,6 +124,13 @@ impl SupportedDevices {
     } else {
         panic!("either `load-onnxruntime` or `link-onnxruntime` must be enabled");
     };
+}
+
+#[ext(SupportedDevicesExt)]
+impl SupportedDevices {
+    pub fn new(cpu: bool, cuda: bool, dml: bool) -> Self {
+        Self { cpu, cuda, dml }
+    }
 }
 
 impl ToJsonValue for SupportedDevices {

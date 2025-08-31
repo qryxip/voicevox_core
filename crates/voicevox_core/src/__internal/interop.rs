@@ -2,7 +2,7 @@ pub mod raii;
 
 pub use crate::{
     convert::ToJsonValue,
-    core::metas::merge as merge_metas,
+    core::{devices::SupportedDevicesExt, metas::merge as merge_metas},
     engine::talk::user_dict::{DEFAULT_PRIORITY, DEFAULT_WORD_TYPE},
     synthesizer::{
         blocking::PerformInference, BlockingTextAnalyzerExt, NonblockingTextAnalyzerExt,
