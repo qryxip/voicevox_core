@@ -24,17 +24,6 @@ jobs:
     name: Rust API
     runs-on: ubuntu-latest
     steps:
-      # よくわからないがディスク容量が足りなくなることがあるため、
-      # とりあえずAndroid, .NET, Haskell関係のものだけ削除して容量を確保する。
-      # https://github.com/VOICEVOX/voicevox_core/issues/1167
-      - name: Save Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          large-packages: false
-          docker-images: false
-          tool-cache: false
-          swap-storage: false
-
       - name: Checkout
         uses: actions/checkout@v5
 
@@ -52,7 +41,16 @@ jobs:
         run: cargo codspeed build -p voicevox_core --bench benches --features load-onnxruntime -m walltime
 
       - name: Run the benchmarks
+        run: cargo codspeed run -m walltime
+
+      - name: Inspect
+        run: |
+          find . -name '.codspeed' -exec ls -lhR {} +
+          ls -lhR target/codspeed
+
+      - name: Run the benchmarks
         uses: CodSpeedHQ/action@v4
+        if: false
         with:
           run: cargo codspeed run -m walltime
           mode: walltime
@@ -65,6 +63,7 @@ jobs:
   python-api:
     name: Python API
     runs-on: ubuntu-latest
+    if: false
     steps:
       # よくわからないがディスク容量が足りなくなることがあるため、
       # とりあえずAndroid, .NET, Haskell関係のものだけ削除して容量を確保する。
