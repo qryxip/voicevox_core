@@ -122,7 +122,10 @@ jobs:
         with:
           key: "cargo-unit-test-cache"
       - name: Run cargo unit test
-        run: RUST_BACKTRACE=full cargo test --lib --bins -v -- --include-ignored
+        run: |
+          export RUST_BACKTRACE=full
+          cargo test --lib --bins -v -- --include-ignored
+          cargo test -vp voicevox_core -F link-onnxruntime
       - name: Run cargo documentation test
         run: RUST_BACKTRACE=full cargo test --doc -v
 

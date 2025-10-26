@@ -37,6 +37,12 @@ use super::super::{
     ParamInfo, PushInputTensor,
 };
 
+macro_rules! onnxruntime_version {
+    () => {
+        "1.17.3"
+    };
+}
+
 impl InferenceRuntime for self::blocking::Onnxruntime {
     type Session = async_lock::Mutex<ort::session::Session>; // WASMでは`ort`を利用しないので、ここはasync-lockを用いてよいはず
     type RunContext = OnnxruntimeRunContext;
@@ -377,7 +383,7 @@ pub(crate) mod blocking {
         /// 推奨されるONNX Runtimeのバージョン。
         #[cfg(feature = "load-onnxruntime")]
         #[cfg_attr(docsrs, doc(cfg(feature = "load-onnxruntime")))]
-        pub const LIB_VERSION: &'static str = ort::downloaded_version!();
+        pub const LIB_VERSION: &'static str = onnxruntime_version!();
 
         /// [`LIB_NAME`]と[`LIB_VERSION`]からなる動的ライブラリのファイル名。
         ///
@@ -577,7 +583,7 @@ pub(crate) mod nonblocking {
         #[cfg(feature = "load-onnxruntime")]
         #[cfg_attr(docsrs, doc(cfg(feature = "load-onnxruntime")))]
         // ブロッキング版と等しいことはテストで担保
-        pub const LIB_VERSION: &'static str = ort::downloaded_version!();
+        pub const LIB_VERSION: &'static str = onnxruntime_version!();
 
         /// [`LIB_NAME`]と[`LIB_VERSION`]からなる動的ライブラリのファイル名。
         ///
@@ -670,13 +676,12 @@ pub(crate) mod nonblocking {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     #[cfg(feature = "load-onnxruntime")]
     #[test]
     fn assert_same_lib_names_and_versions() {
-        use pretty_assertions::assert_eq;
-
         assert_eq!(
             super::blocking::Onnxruntime::LIB_NAME,
             super::nonblocking::Onnxruntime::LIB_NAME,
@@ -685,6 +690,30 @@ mod tests {
             super::blocking::Onnxruntime::LIB_VERSION,
             super::nonblocking::Onnxruntime::LIB_VERSION,
         );
+    }
+
+    #[cfg(feature = "link-onnxruntime")]
+    #[test]
+    fn onnxruntime_version_is_up_to_date() -> anyhow::Result<()> {
+        use std::ffi::CStr;
+
+        super::blocking::Onnxruntime::load_once()
+            .filename(test_util::ONNXRUNTIME_DYLIB_PATH)
+            .perform()?;
+
+        // SAFETY: `OrtGetApiBase` does not require any precondition.
+        let api_base = unsafe { ort::sys::OrtGetApiBase() };
+
+        // SAFETY:
+        // - `OrtGetApiBase` should return a valid and aligned pointer.
+        // - `GetVersionString` does not require any precondition.
+        let actual_version_string = unsafe { ((*api_base).GetVersionString)() };
+
+        // SAFETY: `GetVersionString` should return a valid string.
+        let actual_version_string = unsafe { CStr::from_ptr(actual_version_string) }.to_str()?;
+
+        assert_eq!(actual_version_string, onnxruntime_version!());
+        Ok(())
     }
 
     #[rstest]
