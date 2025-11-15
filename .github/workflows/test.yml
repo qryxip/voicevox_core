@@ -166,11 +166,27 @@ jobs:
           python-version: "3.10"
       - name: Set up Rust
         uses: ./.github/actions/rust-toolchain-from-file
+      - name: ONNX Runtime cache location
+        id: onnxruntime-cache-location
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+        uses: ./.github/actions/onnxruntime-cache-location
       - uses: Swatinem/rust-cache@v2
         with:
           key: "cargo-integration-test-cache-${{ matrix.os }}"
+          cache-directories: ${{ steps.onnxruntime-cache-location.outputs.onnxruntime-cache }}
+      - if: runner.os == 'macOS' || runner.os == 'Linux'
+        run: |
+          if [ -d ${{ steps.onnxruntime-cache-location.outputs.onnxruntime-cache }} ]; then
+            ls -laR ${{ steps.onnxruntime-cache-location.outputs.onnxruntime-cache }}
+            ls -la ./target/debug
+            ls -la ./target/debug/deps
+          fi
+          if [ -d ./target/debug/examples ]; then
+            ls -la ./target/debug/examples
+          fi
       - name: Run cargo integration test (load-onnxruntime)
         run: RUST_BACKTRACE=full cargo test --test "*" -v -- --include-ignored
+      - run: touch ./target/debug/examples/dummy
 
   c-header:
     runs-on: ubuntu-latest

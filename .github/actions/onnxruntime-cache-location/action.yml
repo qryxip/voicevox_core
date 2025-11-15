@@ -1,0 +1,22 @@
+name: ONNX Runtime cache location
+description: voicevox-ort-sysクレートがONNX Runtimeをキャッシュしている場所を返す。
+
+outputs:
+  onnxruntime-cache:
+    value: ${{ steps.find.outputs.onnxruntime-cache }}
+
+runs:
+  using: composite
+  steps:
+    - id: find
+      shell: bash
+      run: |
+        case "$RUNNER_OS" in
+          macOS) cache_dir=/Users/runner/Library/Caches ;;
+          Linux) cache_dir=/home/runner/.cache ;;
+          *)
+            echo 'OS must be macOS or Linux' >&2
+            exit 1
+        esac
+
+        echo onnxruntime-cache=$cache_dir/voicevox_ort/dfbin >> "$GITHUB_OUTPUT"
