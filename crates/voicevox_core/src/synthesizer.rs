@@ -1452,6 +1452,15 @@ impl<R: InferenceRuntime> Status<R> {
     ) -> Result<ndarray::Array1<f32>> {
         let (model_id, inner_voice_id) = self.ids_for::<SingingTeacherDomain>(style_id)?;
 
+        if true {
+            return Ok(fs_err::read("/tmp/song_mock/predict_sing_f0")
+                .unwrap()
+                .chunks_exact(4)
+                .map(|bin| f32::from_le_bytes(bin.try_into().unwrap()))
+                .collect::<Vec<_>>()
+                .into());
+        }
+
         let PredictSingF0Output { f0s } = self
             .run_session::<A, _>(
                 model_id,
@@ -1464,7 +1473,20 @@ impl<R: InferenceRuntime> Status<R> {
             )
             .await?;
 
-        f0s.squeeze_into_1d()
+        let ret = f0s.squeeze_into_1d()?;
+
+        {
+            let bin = ret
+                .iter()
+                .copied()
+                .flat_map(f32::to_le_bytes)
+                .collect::<Vec<_>>();
+            const DST: &str = "/tmp/song_mock/predict_sing_f0";
+            fs_err::write(DST, bin).unwrap();
+            eprintln!("Wrote {DST}");
+        }
+
+        Ok(ret)
     }
 
     async fn predict_sing_volume<A: infer::AsyncExt>(
@@ -1475,6 +1497,15 @@ impl<R: InferenceRuntime> Status<R> {
         style_id: StyleId,
     ) -> Result<ndarray::Array1<f32>> {
         let (model_id, inner_voice_id) = self.ids_for::<SingingTeacherDomain>(style_id)?;
+
+        if true {
+            return Ok(fs_err::read("/tmp/song_mock/predict_sing_volume")
+                .unwrap()
+                .chunks_exact(4)
+                .map(|bin| f32::from_le_bytes(bin.try_into().unwrap()))
+                .collect::<Vec<_>>()
+                .into());
+        }
 
         let PredictSingVolumeOutput { volumes } = self
             .run_session::<A, _>(
@@ -1489,7 +1520,20 @@ impl<R: InferenceRuntime> Status<R> {
             )
             .await?;
 
-        volumes.squeeze_into_1d()
+        let ret = volumes.squeeze_into_1d()?;
+
+        {
+            let bin = ret
+                .iter()
+                .copied()
+                .flat_map(f32::to_le_bytes)
+                .collect::<Vec<_>>();
+            const DST: &str = "/tmp/song_mock/predict_sing_volume";
+            fs_err::write(DST, bin).unwrap();
+            eprintln!("Wrote {DST}");
+        }
+
+        Ok(ret)
     }
 
     async fn sf_decode<A: infer::AsyncExt>(
