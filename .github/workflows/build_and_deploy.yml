@@ -215,6 +215,7 @@ jobs:
     strategy:
       matrix:
         include: ${{ fromJson(needs.config.outputs.includes) }}
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
       ASSET_NAME: voicevox_core-${{ matrix.artifact_name }}-${{ needs.config.outputs.version }}
@@ -275,6 +276,9 @@ jobs:
             ios-xcframework) linking=link-onnxruntime ;;
           esac
           cargo build -p voicevox_core_c_api -v --features "$linking" --target ${{ matrix.target }} --release
+          if [ "$linking" = load-onnxruntime ]; then
+            cargo build -p voicevox_core_c_api -v --features link-onnxruntime --target ${{ matrix.target }}
+          fi
         env:
           RUSTFLAGS: -C panic=abort
       - name: build voicevox_core_python_api
