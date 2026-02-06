@@ -7,19 +7,18 @@ on:
         description: "テスト対象のコアのバージョン。無指定時はprerelease込みの最新release。"
         type: string
         required: false
-  # 新しいビルドができるまで、このworkflowが壊れて動かないことを許容する
-  # https://github.com/VOICEVOX/voicevox_core/issues/741#issuecomment-1935303742
-  #push:
-  #  branches:
-  #    - main
-  #pull_request:
-  #  paths:
-  #    - "Cargo.*"
-  #    - "crates/downloader/**"
-  #    - rust-toolchain
-  #    - ".cargo/config.toml" # 今のところは未使用ではあるが、Rustを利用するワークフローとして統一しておく。
-  #    - ".github/actions/rust-toolchain-from-file/**"
-  #    - ".github/workflows/download_test.yml"
+  push:
+    branches:
+      - main
+      - pr/ci-fix-download-test-and-run-as-ci-again
+  pull_request:
+    paths:
+      - "Cargo.*"
+      - "crates/downloader/**"
+      - rust-toolchain
+      - ".cargo/config.toml" # 今のところは未使用ではあるが、Rustを利用するワークフローとして統一しておく。
+      - ".github/actions/rust-toolchain-from-file/**"
+      - ".github/workflows/download_test.yml"
 
 env:
   VERSION: ${{ inputs.version || 'prerelease-latest' }}
@@ -175,6 +174,8 @@ jobs:
         run: |
           [ -e "${{ matrix.download_dir }}/c_api/VERSION" ]
           [ "$(cat "${{ matrix.download_dir }}/c_api/VERSION")" = "${{ env.VERSION }}" ]
+      - name: Inspect
+        run: ls -lR ${{ matrix.download_dir }}
       - name: Check downloaded files
         run: |
           mapfile -t items < <(echo -n '${{ matrix.check_items }}')
